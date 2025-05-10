@@ -35,19 +35,19 @@ const AdminDashboard = () => {
     { title: "Get Embed Code", icon: Code, onClick: () => console.log("Get Embed Code") },
   ];
 
-  // Navigation items
+  // Navigation items with proper structure (label and path)
   const navigationItems = [
-    { label: "Overview", active: true },
-    { label: "Widget Config", active: false },
-    { label: "Context Rules", active: false },
-    { label: "Templates", active: false },
-    { label: "Knowledge Base", active: false },
-    { label: "Embed Code", active: false },
-    { label: "AI Logs", active: false },
-    { label: "Analytics", active: false },
-    { label: "Settings", active: false },
-    { label: "Users", active: false },
-    { label: "AI Configuration", active: false },
+    { label: "Overview", path: "/admin" },
+    { label: "Widget Config", path: "/admin/widget-config" },
+    { label: "Context Rules", path: "/admin/context-rules" },
+    { label: "Templates", path: "/admin/templates" },
+    { label: "Knowledge Base", path: "/admin/knowledge" },
+    { label: "Embed Code", path: "/admin/embed" },
+    { label: "AI Logs", path: "/admin/logs" },
+    { label: "Analytics", path: "/admin/analytics" },
+    { label: "Settings", path: "/admin/settings" },
+    { label: "Users", path: "/admin/users" },
+    { label: "AI Configuration", path: "/admin/ai-config" },
   ];
 
   const handleAnalyticsToggle = (checked: boolean) => {
