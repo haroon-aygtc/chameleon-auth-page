@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class AiModelService
 {
@@ -136,9 +137,8 @@ class AiModelService
         }
         
         try {
-            // Here you would integrate with the actual AI provider APIs
-            // For now, we'll simulate a response
-            $response = $this->simulateAiResponse($model, $message, $style);
+            // Call the appropriate AI provider based on the model type
+            $response = $this->callAiProvider($model, $message, $style);
             
             return [
                 'model' => $model->name,
@@ -150,7 +150,8 @@ class AiModelService
         } catch (\Exception $e) {
             Log::error('AI model test failed', [
                 'model_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             throw new \Exception('Failed to test AI model: ' . $e->getMessage());
@@ -158,21 +159,224 @@ class AiModelService
     }
 
     /**
-     * Simulate an AI response for testing purposes.
-     * In a production environment, this would call the actual AI provider API.
+     * Call the appropriate AI provider based on the model type.
      */
-    private function simulateAiResponse(AiModel $model, string $message, string $style): string
+    protected function callAiProvider(AiModel $model, string $message, string $style): string
     {
-        $responses = [
-            'friendly' => "Hi there! Thanks for your message: \"{$message}\". I'm happy to help with anything you need!",
-            'technical' => "Technical response to: \"{$message}\". Analysis indicates multiple approaches could be considered.",
-            'concise' => "Re: \"{$message}\". Understood. Will process.",
-            'detailed' => "Regarding your message: \"{$message}\". I'd like to provide a comprehensive response that addresses all aspects of your query. First, let's analyze what you're asking for..."
+        // Prepare the system message based on style
+        $systemMessage = $this->getSystemMessageForStyle($model->base_prompt, $style);
+        
+        // Call the appropriate API based on model type
+        switch ($model->type) {
+            case 'openai':
+                return $this->callOpenAI($model, $systemMessage, $message);
+            case 'gemini':
+                return $this->callGemini($model, $systemMessage, $message);
+            case 'huggingface':
+                return $this->callHuggingFace($model, $systemMessage, $message);
+            case 'custom':
+                return $this->callCustomApi($model, $systemMessage, $message);
+            default:
+                throw new \Exception("Unsupported AI model type: {$model->type}");
+        }
+    }
+
+    /**
+     * Get the system message based on the conversation style.
+     */
+    protected function getSystemMessageForStyle(string $basePrompt, string $style): string
+    {
+        $styleInstructions = [
+            'friendly' => 'Be warm, approachable and conversational in your responses.',
+            'technical' => 'Be technical, precise and use technical terminology where appropriate.',
+            'concise' => 'Be extremely brief and to the point, using as few words as possible.',
+            'detailed' => 'Be thorough and provide comprehensive explanations with examples where helpful.'
         ];
         
-        // Add a short delay to simulate API call
-        usleep(500000); // 0.5 seconds
+        $styleInstruction = $styleInstructions[$style] ?? $styleInstructions['friendly'];
         
-        return $responses[$style] ?? $responses['friendly'];
+        return trim($basePrompt . "\n\n" . $styleInstruction);
+    }
+
+    /**
+     * Call the OpenAI API.
+     */
+    protected function callOpenAI(AiModel $model, string $systemMessage, string $userMessage): string
+    {
+        $apiKey = $model->api_key;
+        $config = $model->configuration;
+        
+        $temperature = $config['temperature'] ?? 0.7;
+        $maxTokens = $config['maxTokens'] ?? 1000;
+        
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Content-Type' => 'application/json',
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => $config['model'] ?? 'gpt-4o',
+            'messages' => [
+                ['role' => 'system', 'content' => $systemMessage],
+                ['role' => 'user', 'content' => $userMessage]
+            ],
+            'temperature' => $temperature,
+            'max_tokens' => $maxTokens,
+        ]);
+        
+        if ($response->failed()) {
+            throw new \Exception("OpenAI API error: " . $response->body());
+        }
+        
+        $responseData = $response->json();
+        return $responseData['choices'][0]['message']['content'] ?? '';
+    }
+
+    /**
+     * Call the Google Gemini API.
+     */
+    protected function callGemini(AiModel $model, string $systemMessage, string $userMessage): string
+    {
+        $apiKey = $model->api_key;
+        $config = $model->configuration;
+        
+        $temperature = $config['temperature'] ?? 0.7;
+        $maxTokens = $config['maxTokens'] ?? 1000;
+        $topP = $config['topP'] ?? 0.95;
+        
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post("https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={$apiKey}", [
+            'contents' => [
+                [
+                    'role' => 'user',
+                    'parts' => [
+                        ['text' => $systemMessage . "\n\nUser message: " . $userMessage]
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'temperature' => $temperature,
+                'maxOutputTokens' => $maxTokens,
+                'topP' => $topP,
+            ],
+        ]);
+        
+        if ($response->failed()) {
+            throw new \Exception("Gemini API error: " . $response->body());
+        }
+        
+        $responseData = $response->json();
+        return $responseData['candidates'][0]['content']['parts'][0]['text'] ?? '';
+    }
+
+    /**
+     * Call the Hugging Face API.
+     */
+    protected function callHuggingFace(AiModel $model, string $systemMessage, string $userMessage): string
+    {
+        $apiKey = $model->api_key;
+        $config = $model->configuration;
+        
+        // Get the model ID from configuration or use a default
+        $modelId = $config['model_id'] ?? 'meta-llama/Llama-3-8b-chat-hf';
+        
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Content-Type' => 'application/json',
+        ])->post("https://api-inference.huggingface.co/models/{$modelId}", [
+            'inputs' => "<|system|>\n{$systemMessage}\n<|user|>\n{$userMessage}\n<|assistant|>",
+            'parameters' => [
+                'temperature' => $config['temperature'] ?? 0.7,
+                'max_new_tokens' => $config['maxTokens'] ?? 1000,
+                'return_full_text' => false,
+            ]
+        ]);
+        
+        if ($response->failed()) {
+            throw new \Exception("HuggingFace API error: " . $response->body());
+        }
+        
+        $responseData = $response->json();
+        
+        // Handle different response formats
+        if (isset($responseData[0]['generated_text'])) {
+            return $responseData[0]['generated_text'];
+        }
+        
+        return $responseData[0] ?? '';
+    }
+
+    /**
+     * Call a custom API endpoint.
+     */
+    protected function callCustomApi(AiModel $model, string $systemMessage, string $userMessage): string
+    {
+        $config = $model->configuration;
+        
+        if (empty($config['endpoint'])) {
+            throw new \Exception("Custom API endpoint not configured");
+        }
+        
+        $endpoint = $config['endpoint'];
+        $method = strtoupper($config['method'] ?? 'POST');
+        $headers = $config['headers'] ?? [];
+        
+        // Replace placeholders in the request body template
+        $requestBody = $config['body_template'] ?? '{"system": "%system%", "user": "%user%"}';
+        $requestBody = str_replace(
+            ['%system%', '%user%'], 
+            [$systemMessage, $userMessage], 
+            $requestBody
+        );
+        
+        // Convert string to JSON if needed
+        $requestData = is_string($requestBody) && $this->isJson($requestBody) 
+            ? json_decode($requestBody, true) 
+            : $requestBody;
+        
+        // Make the request
+        $http = Http::withHeaders($headers);
+        
+        if ($method === 'GET') {
+            $response = $http->get($endpoint, is_array($requestData) ? $requestData : []);
+        } else {
+            $response = $http->$method($endpoint, $requestData);
+        }
+        
+        if ($response->failed()) {
+            throw new \Exception("Custom API error: " . $response->body());
+        }
+        
+        // Extract response using the configured path
+        $responsePath = $config['response_path'] ?? 'response';
+        $responseData = $response->json();
+        
+        return $this->extractValueByPath($responseData, $responsePath);
+    }
+    
+    /**
+     * Extract a value from an array using dot notation path.
+     */
+    protected function extractValueByPath(array $data, string $path)
+    {
+        $keys = explode('.', $path);
+        $value = $data;
+        
+        foreach ($keys as $key) {
+            if (!isset($value[$key])) {
+                return null;
+            }
+            $value = $value[$key];
+        }
+        
+        return $value;
+    }
+    
+    /**
+     * Check if a string is valid JSON.
+     */
+    protected function isJson(string $string): bool
+    {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 }
