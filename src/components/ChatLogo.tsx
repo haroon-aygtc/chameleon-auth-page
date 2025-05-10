@@ -26,8 +26,8 @@ const ChatLogo: React.FC<ChatLogoProps> = ({ className = "", variant = 'default'
           <path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z" />
         </svg>
       </div>
-      {variant === 'default' && (
-        <span className={cn("font-medium text-chatgold", variant === 'compact' ? 'text-sm' : '')}>
+      {variant !== 'compact' && (
+        <span className="font-medium text-chatgold">
           ChatAdmin
         </span>
       )}
