@@ -1,27 +1,31 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminNavTabs from '@/components/admin/AdminNavTabs';
-import RoleTable from '@/components/admin/roles/RoleTable';
-import RoleForm from '@/components/admin/roles/RoleForm';
+import RolesList from '@/components/admin/roles/RolesList';
 import PermissionAssignmentModal from '@/components/admin/roles/PermissionAssignmentModal';
-import { useToast } from "@/hooks/use-toast";
-import { Plus, List, Settings } from 'lucide-react';
-import { motion } from 'framer-motion';
-import roleService from '@/services/roleService';
-import { Role } from '@/services/types';
+import { useRoleManagement } from '@/hooks/useRoleManagement';
 
 const RolesPage = () => {
-  const { toast } = useToast();
-  const [permissionModalOpen, setPermissionModalOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("roles");
+  
+  const {
+    roles,
+    isLoading,
+    permissionModalOpen,
+    selectedRole,
+    activeTab,
+    setActiveTab,
+    setPermissionModalOpen,
+    handleRoleSubmit,
+    handleRoleDelete,
+    handleAssignPermissions,
+    handleSavePermissionAssignments,
+    handleEditRole,
+    handleCreateRole,
+    handleCancelForm
+  } = useRoleManagement();
   
   // Navigation tabs
   const tabs = [
@@ -39,111 +43,6 @@ const RolesPage = () => {
     { label: "Settings", path: "/admin/settings" },
     { label: "AI Configuration", path: "/admin/ai-config" },
   ];
-
-  // Fetch roles with React Query
-  const { 
-    data: roles = [], 
-    isLoading,
-    refetch: refetchRoles
-  } = useQuery({
-    queryKey: ['roles'],
-    queryFn: roleService.getAll,
-  });
-
-  // Handle role form submission
-  const handleRoleSubmit = async (roleData: Partial<Role>) => {
-    try {
-      if (selectedRole && selectedRole.id) {
-        // Update existing role
-        await roleService.update(selectedRole.id, roleData);
-        toast({
-          title: "Success",
-          description: "Role updated successfully",
-        });
-      } else {
-        // Create new role
-        await roleService.create(roleData);
-        toast({
-          title: "Success",
-          description: "Role created successfully",
-        });
-      }
-      
-      refetchRoles();
-      setActiveTab("roles");
-      setSelectedRole(null);
-    } catch (error) {
-      console.error("Error saving role:", error);
-      toast({
-        title: "Error",
-        description: selectedRole ? "Failed to update role" : "Failed to create role",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle role deletion
-  const handleRoleDelete = async (roleId: string) => {
-    try {
-      await roleService.delete(roleId);
-      refetchRoles();
-      toast({
-        title: "Success",
-        description: "Role deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete role",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle permission assignment
-  const handleAssignPermissions = (role: Role) => {
-    setSelectedRole(role);
-    setPermissionModalOpen(true);
-  };
-
-  // Save permission assignments
-  const handleSavePermissionAssignments = async (roleId: string, permissionIds: string[]) => {
-    try {
-      await roleService.assignPermissions(roleId, permissionIds);
-      refetchRoles();
-      setPermissionModalOpen(false);
-      toast({
-        title: "Success",
-        description: "Permissions assigned successfully",
-      });
-    } catch (error) {
-      console.error("Error assigning permissions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to assign permissions",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle edit role
-  const handleEditRole = (role: Role) => {
-    setSelectedRole(role);
-    setActiveTab("edit");
-  };
-
-  // Handle create role
-  const handleCreateRole = () => {
-    setSelectedRole(null);
-    setActiveTab("edit");
-  };
-
-  // Handle cancel form
-  const handleCancelForm = () => {
-    setActiveTab("roles");
-    setSelectedRole(null);
-  };
 
   // Handle analytics toggle
   const handleAnalyticsToggle = (checked: boolean) => {
@@ -168,73 +67,19 @@ const RolesPage = () => {
           {/* Navigation Tabs */}
           <AdminNavTabs items={tabs} />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="space-y-0.5">
-                <CardTitle className="text-xl font-bold">Roles Management</CardTitle>
-                <p className="text-muted-foreground text-sm">
-                  Define roles and assign permissions to control access to system features
-                </p>
-              </div>
-              <Button
-                onClick={handleCreateRole}
-                className="flex items-center"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                New Role
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="roles" className="flex items-center">
-                    <List className="mr-2 h-4 w-4" />
-                    Role List
-                  </TabsTrigger>
-                  <TabsTrigger value="edit" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
-                    {selectedRole ? 'Edit Role' : 'Create Role'}
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="roles">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center justify-center h-64">
-                        <p>Loading roles...</p>
-                      </div>
-                    ) : (
-                      <RoleTable
-                        roles={roles}
-                        onEdit={handleEditRole}
-                        onDelete={handleRoleDelete}
-                        onAssignPermissions={handleAssignPermissions}
-                      />
-                    )}
-                  </motion.div>
-                </TabsContent>
-                
-                <TabsContent value="edit">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <RoleForm
-                      role={selectedRole ?? undefined}
-                      onSubmit={handleRoleSubmit}
-                      onCancel={handleCancelForm}
-                    />
-                  </motion.div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+          <RolesList
+            roles={roles}
+            isLoading={isLoading}
+            activeTab={activeTab}
+            selectedRole={selectedRole || undefined}
+            onTabChange={setActiveTab}
+            onCreateRole={handleCreateRole}
+            onEditRole={handleEditRole}
+            onDeleteRole={handleRoleDelete}
+            onAssignPermissions={handleAssignPermissions}
+            onRoleSubmit={handleRoleSubmit}
+            onCancelForm={handleCancelForm}
+          />
         </main>
       </div>
 
