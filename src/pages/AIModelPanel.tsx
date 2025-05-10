@@ -24,6 +24,7 @@ const AIModelPanel: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<AIModel | null>(null);
+  const [activeTab, setActiveTab] = useState('models');
   const navigate = useNavigate();
   
   const handleToggleActive = (modelId: string) => {
@@ -47,16 +48,16 @@ const AIModelPanel: React.FC = () => {
 
   const handleEditModel = (model: AIModel) => {
     setEditingModel(model);
-    setIsFormOpen(true);
+    setActiveTab('form');
   };
 
   const handleAddNewModel = () => {
     setEditingModel(null);
-    setIsFormOpen(true);
+    setActiveTab('form');
   };
 
   const handleFormClose = () => {
-    setIsFormOpen(false);
+    setActiveTab('models');
     setEditingModel(null);
   };
 
@@ -70,7 +71,7 @@ const AIModelPanel: React.FC = () => {
       setModels([...models, model]);
       toast.success(`${model.name} added successfully`);
     }
-    setIsFormOpen(false);
+    setActiveTab('models');
     setEditingModel(null);
   };
   
@@ -95,7 +96,7 @@ const AIModelPanel: React.FC = () => {
       </motion.div>
       
       <div className="grid grid-cols-1 gap-8">
-        <Tabs defaultValue="models" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="form">Add/Edit Model</TabsTrigger>
