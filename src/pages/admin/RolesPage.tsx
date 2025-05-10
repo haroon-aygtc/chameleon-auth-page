@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Role, roleService } from '@/services/mockDatabase';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminNavTabs from '@/components/admin/AdminNavTabs';
@@ -10,18 +11,17 @@ import RoleTable from '@/components/admin/roles/RoleTable';
 import RoleForm from '@/components/admin/roles/RoleForm';
 import PermissionAssignmentModal from '@/components/admin/roles/PermissionAssignmentModal';
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from 'lucide-react';
+import { Plus, List, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
+import roleService from '@/services/roleService';
+import { Role } from '@/services/types';
 
 const RolesPage = () => {
   const { toast } = useToast();
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [currentRole, setCurrentRole] = useState<Role | undefined>(undefined);
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("roles");
   
   // Navigation tabs
   const tabs = [
@@ -40,55 +40,43 @@ const RolesPage = () => {
     { label: "AI Configuration", path: "/admin/ai-config" },
   ];
 
-  // Fetch roles on component mount
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const data = await roleService.getAll();
-        setRoles(data);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch roles",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRoles();
-  }, [toast]);
+  // Fetch roles with React Query
+  const { 
+    data: roles = [], 
+    isLoading,
+    refetch: refetchRoles
+  } = useQuery({
+    queryKey: ['roles'],
+    queryFn: roleService.getAll,
+  });
 
   // Handle role form submission
   const handleRoleSubmit = async (roleData: Partial<Role>) => {
     try {
-      let updatedRole;
-      
-      if (currentRole) {
+      if (selectedRole && selectedRole.id) {
         // Update existing role
-        updatedRole = await roleService.update(currentRole.id, roleData);
-        setRoles(roles.map(role => role.id === currentRole.id ? updatedRole : role));
+        await roleService.update(selectedRole.id, roleData);
         toast({
           title: "Success",
           description: "Role updated successfully",
         });
       } else {
         // Create new role
-        updatedRole = await roleService.create(roleData as Omit<Role, 'id' | 'createdAt' | 'updatedAt'>);
-        setRoles([...roles, updatedRole]);
+        await roleService.create(roleData);
         toast({
           title: "Success",
           description: "Role created successfully",
         });
       }
       
-      setShowForm(false);
-      setCurrentRole(undefined);
+      refetchRoles();
+      setActiveTab("roles");
+      setSelectedRole(null);
     } catch (error) {
+      console.error("Error saving role:", error);
       toast({
         title: "Error",
-        description: currentRole ? "Failed to update role" : "Failed to create role",
+        description: selectedRole ? "Failed to update role" : "Failed to create role",
         variant: "destructive",
       });
     }
@@ -98,8 +86,13 @@ const RolesPage = () => {
   const handleRoleDelete = async (roleId: string) => {
     try {
       await roleService.delete(roleId);
-      setRoles(roles.filter(role => role.id !== roleId));
+      refetchRoles();
+      toast({
+        title: "Success",
+        description: "Role deleted successfully",
+      });
     } catch (error) {
+      console.error("Error deleting role:", error);
       toast({
         title: "Error",
         description: "Failed to delete role",
@@ -117,20 +110,39 @@ const RolesPage = () => {
   // Save permission assignments
   const handleSavePermissionAssignments = async (roleId: string, permissionIds: string[]) => {
     try {
-      const updatedRole = await roleService.assignPermissions(roleId, permissionIds);
-      setRoles(roles.map(role => role.id === roleId ? updatedRole : role));
+      await roleService.assignPermissions(roleId, permissionIds);
+      refetchRoles();
       setPermissionModalOpen(false);
       toast({
         title: "Success",
         description: "Permissions assigned successfully",
       });
     } catch (error) {
+      console.error("Error assigning permissions:", error);
       toast({
         title: "Error",
         description: "Failed to assign permissions",
         variant: "destructive",
       });
     }
+  };
+
+  // Handle edit role
+  const handleEditRole = (role: Role) => {
+    setSelectedRole(role);
+    setActiveTab("edit");
+  };
+
+  // Handle create role
+  const handleCreateRole = () => {
+    setSelectedRole(null);
+    setActiveTab("edit");
+  };
+
+  // Handle cancel form
+  const handleCancelForm = () => {
+    setActiveTab("roles");
+    setSelectedRole(null);
   };
 
   // Handle analytics toggle
@@ -156,65 +168,73 @@ const RolesPage = () => {
           {/* Navigation Tabs */}
           <AdminNavTabs items={tabs} />
 
-          {showForm ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <RoleForm
-                role={currentRole}
-                onSubmit={handleRoleSubmit}
-                onCancel={() => {
-                  setShowForm(false);
-                  setCurrentRole(undefined);
-                }}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div className="space-y-0.5">
-                    <CardTitle className="text-xl font-bold">Roles</CardTitle>
-                    <p className="text-muted-foreground text-sm">Manage role definitions and their permissions.</p>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setCurrentRole(undefined);
-                      setShowForm(true);
-                    }}
-                    className="flex items-center"
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="space-y-0.5">
+                <CardTitle className="text-xl font-bold">Roles Management</CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  Define roles and assign permissions to control access to system features
+                </p>
+              </div>
+              <Button
+                onClick={handleCreateRole}
+                className="flex items-center"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Role
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="roles" className="flex items-center">
+                    <List className="mr-2 h-4 w-4" />
+                    Role List
+                  </TabsTrigger>
+                  <TabsTrigger value="edit" className="flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    {selectedRole ? 'Edit Role' : 'Create Role'}
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="roles">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Role
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                      <p>Loading roles...</p>
-                    </div>
-                  ) : (
-                    <RoleTable
-                      roles={roles}
-                      onEdit={(role) => {
-                        setCurrentRole(role);
-                        setShowForm(true);
-                      }}
-                      onDelete={handleRoleDelete}
-                      onAssignPermissions={handleAssignPermissions}
+                    {isLoading ? (
+                      <div className="flex items-center justify-center h-64">
+                        <p>Loading roles...</p>
+                      </div>
+                    ) : (
+                      <RoleTable
+                        roles={roles}
+                        onEdit={handleEditRole}
+                        onDelete={handleRoleDelete}
+                        onAssignPermissions={handleAssignPermissions}
+                      />
+                    )}
+                  </motion.div>
+                </TabsContent>
+                
+                <TabsContent value="edit">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <RoleForm
+                      role={selectedRole ?? undefined}
+                      onSubmit={handleRoleSubmit}
+                      onCancel={handleCancelForm}
                     />
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                  </motion.div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </main>
       </div>
 

@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
-import { Role, Permission, permissionService } from "@/services/mockDatabase";
+import { useQuery } from "@tanstack/react-query";
+import { Role } from "@/services/types";
+import permissionService from "@/services/permissionService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,10 +13,9 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Edit, Trash2, Key } from "lucide-react";
+import { Edit, Trash2, Key, Users, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
 
 interface RoleTableProps {
   roles: Role[];
@@ -45,8 +46,8 @@ const RoleTable = ({ roles, onEdit, onDelete, onAssignPermissions }: RoleTablePr
   
   const sortedRoles = [...roles].sort((a, b) => {
     if (sortColumn === "name" || sortColumn === "description") {
-      const valueA = a[sortColumn].toLowerCase();
-      const valueB = b[sortColumn].toLowerCase();
+      const valueA = String(a[sortColumn] || '').toLowerCase();
+      const valueB = String(b[sortColumn] || '').toLowerCase();
       
       if (sortDirection === "asc") {
         return valueA.localeCompare(valueB);
@@ -60,6 +61,13 @@ const RoleTable = ({ roles, onEdit, onDelete, onAssignPermissions }: RoleTablePr
       return sortDirection === "asc" 
         ? dateA.getTime() - dateB.getTime() 
         : dateB.getTime() - dateA.getTime();
+    } else if (sortColumn === "userCount") {
+      const countA = a.userCount || 0;
+      const countB = b.userCount || 0;
+      
+      return sortDirection === "asc"
+        ? countA - countB
+        : countB - countA;
     }
     
     return 0;
@@ -70,14 +78,25 @@ const RoleTable = ({ roles, onEdit, onDelete, onAssignPermissions }: RoleTablePr
     return permission ? permission.name : permissionId;
   };
   
-  const handleDeleteConfirm = (roleId: string, roleName: string) => {
+  const handleDeleteConfirm = (roleId: string, roleName: string, isSystem: boolean = false) => {
+    if (isSystem) {
+      toast({
+        title: "Cannot Delete System Role",
+        description: "System roles cannot be deleted as they are required for core functionality.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (window.confirm(`Are you sure you want to delete the role "${roleName}"?`)) {
       onDelete(roleId);
-      toast({
-        title: "Role Deleted",
-        description: `"${roleName}" role has been deleted successfully.`,
-      });
     }
+  };
+
+  const getRoleColorClass = (role: Role) => {
+    if (role.isSystem) return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+    if (role.color) return role.color;
+    return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
   };
 
   return (
@@ -99,42 +118,74 @@ const RoleTable = ({ roles, onEdit, onDelete, onAssignPermissions }: RoleTablePr
             </TableHead>
             <TableHead className="w-1/3">Permissions</TableHead>
             <TableHead 
+              onClick={() => handleSort("userCount")}
+              className="cursor-pointer hover:bg-muted/50 w-32 text-center"
+            >
+              Users {sortColumn === "userCount" && (sortDirection === "asc" ? "↑" : "↓")}
+            </TableHead>
+            <TableHead 
               onClick={() => handleSort("updatedAt")}
               className="cursor-pointer hover:bg-muted/50 w-32"
             >
               Updated {sortColumn === "updatedAt" && (sortDirection === "asc" ? "↑" : "↓")}
             </TableHead>
-            <TableHead className="text-right w-24">Actions</TableHead>
+            <TableHead className="text-right w-32">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedRoles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
-                No roles found.
+              <TableCell colSpan={6} className="h-24 text-center">
+                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 mb-2" />
+                  <p>No roles found.</p>
+                  <p className="text-sm">Create a new role to get started.</p>
+                </div>
               </TableCell>
             </TableRow>
           ) : (
             sortedRoles.map((role) => (
               <TableRow key={role.id} className="hover:bg-muted/50">
-                <TableCell className="font-medium">{role.name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <Badge className={getRoleColorClass(role)}>
+                      {role.name}
+                    </Badge>
+                    {role.isSystem && (
+                      <Badge variant="outline" className="text-xs">System</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>{role.description}</TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                    {role.permissions.length === 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {!role.permissions || role.permissions.length === 0 ? (
                       <span className="text-muted-foreground text-sm">No permissions assigned</span>
                     ) : (
-                      role.permissions.slice(0, 6).map((permissionId) => (
-                        <Badge key={permissionId} variant="outline" className="mr-1 mb-1">
-                          {getPermissionName(permissionId)}
+                      <>
+                        <Badge variant="secondary" className="mr-1">
+                          {role.permissions.length} permissions
                         </Badge>
-                      ))
+                        {role.permissions.slice(0, 3).map((permissionId) => (
+                          <Badge key={permissionId} variant="outline" className="mr-1 mb-1">
+                            {getPermissionName(permissionId)}
+                          </Badge>
+                        ))}
+                        {role.permissions.length > 3 && (
+                          <Badge variant="outline">
+                            +{role.permissions.length - 3} more
+                          </Badge>
+                        )}
+                      </>
                     )}
-                    {role.permissions.length > 6 && (
-                      <Badge variant="secondary">
-                        +{role.permissions.length - 6} more
-                      </Badge>
-                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-center">
+                  <div className="flex items-center justify-center">
+                    <Badge variant="outline" className="flex gap-1 items-center">
+                      <Users className="h-3 w-3" />
+                      <span>{role.userCount || 0}</span>
+                    </Badge>
                   </div>
                 </TableCell>
                 <TableCell>{format(new Date(role.updatedAt), 'MMM d, yyyy')}</TableCell>
@@ -145,6 +196,7 @@ const RoleTable = ({ roles, onEdit, onDelete, onAssignPermissions }: RoleTablePr
                       size="icon" 
                       onClick={() => onEdit(role)}
                       className="h-8 w-8"
+                      title="Edit role"
                     >
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Edit</span>
@@ -154,6 +206,7 @@ const RoleTable = ({ roles, onEdit, onDelete, onAssignPermissions }: RoleTablePr
                       size="icon"
                       onClick={() => onAssignPermissions(role)}
                       className="h-8 w-8"
+                      title="Assign permissions"
                     >
                       <Key className="h-4 w-4" />
                       <span className="sr-only">Assign Permissions</span>
@@ -161,8 +214,10 @@ const RoleTable = ({ roles, onEdit, onDelete, onAssignPermissions }: RoleTablePr
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      onClick={() => handleDeleteConfirm(role.id, role.name)}
+                      onClick={() => handleDeleteConfirm(role.id, role.name, role.isSystem)}
                       className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                      disabled={role.isSystem}
+                      title={role.isSystem ? "System roles cannot be deleted" : "Delete role"}
                     >
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Delete</span>
