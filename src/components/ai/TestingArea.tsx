@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ChevronDown } from 'lucide-react';
@@ -25,9 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { AIModel, ResponseStyle, Message } from '@/types/ai-types';
-import { getModelResponse } from '@/data/mockData';
+import aiModelService from '@/services/aiModelService';
+import { useMutation } from '@tanstack/react-query';
 
 interface TestingAreaProps {
   models: AIModel[];
@@ -43,9 +43,7 @@ const TestingArea: React.FC<TestingAreaProps> = ({
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>('friendly');
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,6 +52,44 @@ const TestingArea: React.FC<TestingAreaProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Mutation for testing the model
+  const testModelMutation = useMutation({
+    mutationFn: ({ modelId, message, style }: { modelId: string; message: string; style: string }) => 
+      aiModelService.testModel(modelId, message, style),
+    onSuccess: (response, variables) => {
+      // Update with the successful response
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === `${Date.now()}-assistant` 
+            ? { 
+                ...msg, 
+                content: response.response, 
+                status: 'success' 
+              } 
+            : msg
+        )
+      );
+    },
+    onError: (error) => {
+      // Update with error response
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === `${Date.now()}-assistant` 
+            ? { 
+                ...msg, 
+                content: 'Sorry, I encountered an error while processing your request.', 
+                status: 'error' 
+              } 
+            : msg
+        )
+      );
+      
+      toast.error('Failed to get response from model', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
+    }
+  });
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || !activeModel) return;
@@ -69,7 +105,7 @@ const TestingArea: React.FC<TestingAreaProps> = ({
     setUserInput('');
 
     // Add assistant message with loading state
-    const assistantMessageId = Date.now().toString() + '-assistant';
+    const assistantMessageId = `${Date.now()}-assistant`;
     const assistantMessage: Message = {
       id: assistantMessageId,
       content: '',
@@ -79,35 +115,13 @@ const TestingArea: React.FC<TestingAreaProps> = ({
     };
 
     setMessages(prev => [...prev, assistantMessage]);
-    setIsTyping(true);
 
-    try {
-      const response = await getModelResponse(userInput, responseStyle);
-      
-      // Update with the actual response
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, content: response, status: 'success' } 
-            : msg
-        )
-      );
-    } catch (error) {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, content: 'Sorry, I encountered an error while processing your request.', status: 'error' } 
-            : msg
-        )
-      );
-      toast({
-        title: 'Error',
-        description: 'Failed to get response from the model',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsTyping(false);
-    }
+    // Test the model using the mutation
+    testModelMutation.mutate({
+      modelId: activeModel.id,
+      message: userInput,
+      style: responseStyle
+    });
   };
 
   const getStatusColor = (status?: string) => {
@@ -120,17 +134,6 @@ const TestingArea: React.FC<TestingAreaProps> = ({
       default:
         return 'bg-muted/50';
     }
-  };
-
-  const simulateTyping = (text: string, speed = 50) => {
-    let i = 0;
-    const typing = setInterval(() => {
-      i++;
-      if (i >= text.length) {
-        clearInterval(typing);
-        setIsTyping(false);
-      }
-    }, speed);
   };
 
   return (
@@ -235,11 +238,11 @@ const TestingArea: React.FC<TestingAreaProps> = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSendMessage();
             }}
-            disabled={!activeModel || isTyping}
+            disabled={!activeModel || testModelMutation.isPending}
           />
           <Button 
             onClick={handleSendMessage}
-            disabled={!userInput.trim() || !activeModel || isTyping}
+            disabled={!userInput.trim() || !activeModel || testModelMutation.isPending}
           >
             <ArrowRight className="h-4 w-4" />
           </Button>

@@ -1,6 +1,7 @@
 
 <?php
 
+use App\Http\Controllers\AiModelController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
@@ -21,6 +22,12 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// AI Models routes
+Route::apiResource('ai-models', AiModelController::class);
+Route::post('/ai-models/{id}/toggle-active', [AiModelController::class, 'toggleActive']);
+Route::post('/ai-models/{id}/set-default', [AiModelController::class, 'setDefault']);
+Route::post('/ai-models/{id}/test', [AiModelController::class, 'testModel']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

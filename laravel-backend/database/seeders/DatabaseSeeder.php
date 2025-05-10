@@ -1,3 +1,4 @@
+
 <?php
 
 namespace Database\Seeders;
@@ -12,9 +13,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            PermissionsSeeder::class,
-            RolesSeeder::class,
             UsersSeeder::class,
+            RolesSeeder::class,
+            PermissionsSeeder::class,
+            AiModelsSeeder::class,
         ]);
     }
 }

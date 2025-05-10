@@ -1,49 +1,110 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Plus, Edit, Table, LayoutGrid, TestTube
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  Card
-} from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import ModelCard from '@/components/ai/ModelCard';
 import ModelTable from '@/components/ai/ModelTable';
 import TestingArea from '@/components/ai/TestingArea';
 import ModelForm from '@/components/ai/ModelForm';
-import { AIModel, ResponseStyle } from '@/types/ai-types';
-import { mockAIModels } from '@/data/mockData';
+import { AIModel } from '@/types/ai-types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import aiModelService from '@/services/aiModelService';
 
 const AIModelPanel: React.FC = () => {
-  const [models, setModels] = useState<AIModel[]>(mockAIModels);
-  const [activeModel, setActiveModel] = useState<AIModel | null>(models.find(m => m.isDefault) || null);
+  const [activeModel, setActiveModel] = useState<AIModel | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<AIModel | null>(null);
   const [activeTab, setActiveTab] = useState('models');
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  // Query for fetching all models
+  const { 
+    data: models = [], 
+    isLoading,
+    error 
+  } = useQuery({
+    queryKey: ['aiModels'],
+    queryFn: aiModelService.getAllModels,
+    onSuccess: (data) => {
+      // Set the default model as active if available
+      const defaultModel = data.find(m => m.isDefault);
+      if (defaultModel && !activeModel) {
+        setActiveModel(defaultModel);
+      }
+    }
+  });
+  
+  // Mutation for toggling active status
+  const toggleActiveMutation = useMutation({
+    mutationFn: (modelId: string) => aiModelService.toggleActive(modelId),
+    onSuccess: (updatedModel) => {
+      queryClient.invalidateQueries({ queryKey: ['aiModels'] });
+      toast(updatedModel.isActive ? 'Model activated' : 'Model deactivated', {
+        description: `${updatedModel.name} is now ${updatedModel.isActive ? 'active' : 'inactive'}`
+      });
+      
+      // Update active model if it was modified
+      if (activeModel && activeModel.id === updatedModel.id) {
+        setActiveModel(updatedModel);
+      }
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update model status', {
+        description: error.message || 'An error occurred while updating the model'
+      });
+    }
+  });
+  
+  // Mutation for setting default model
+  const setDefaultMutation = useMutation({
+    mutationFn: (modelId: string) => aiModelService.setDefault(modelId),
+    onSuccess: (updatedModel) => {
+      queryClient.invalidateQueries({ queryKey: ['aiModels'] });
+      toast.success(`${updatedModel.name} is now set as default`);
+      
+      // Update active model to the new default
+      setActiveModel(updatedModel);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to set default model', {
+        description: error.message || 'An error occurred while setting the default model'
+      });
+    }
+  });
+  
+  // Mutation for creating/updating models
+  const saveMutation = useMutation({
+    mutationFn: (model: any) => {
+      return model.id 
+        ? aiModelService.updateModel(model.id, model)
+        : aiModelService.createModel(model);
+    },
+    onSuccess: (savedModel, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['aiModels'] });
+      toast.success(`${savedModel.name} ${variables.id ? 'updated' : 'added'} successfully`);
+      setActiveTab('models');
+      setEditingModel(null);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to save model', {
+        description: error.message || 'An error occurred while saving the model'
+      });
+    }
+  });
   
   const handleToggleActive = (modelId: string) => {
-    setModels(models.map(model => 
-      model.id === modelId ? { ...model, isActive: !model.isActive } : model
-    ));
-    const targetModel = models.find(m => m.id === modelId);
-    toast(targetModel?.isActive ? 'Model deactivated' : 'Model activated', {
-      description: `${targetModel?.name} is now ${targetModel?.isActive ? 'inactive' : 'active'}`
-    });
+    toggleActiveMutation.mutate(modelId);
   };
   
   const handleSetDefault = (modelId: string) => {
-    setModels(models.map(model => ({
-      ...model,
-      isDefault: model.id === modelId
-    })));
-    const targetModel = models.find(m => m.id === modelId);
-    toast.success(`${targetModel?.name} is now set as default`);
+    setDefaultMutation.mutate(modelId);
   };
 
   const handleEditModel = (model: AIModel) => {
@@ -62,18 +123,35 @@ const AIModelPanel: React.FC = () => {
   };
 
   const handleFormSubmit = (model: AIModel) => {
-    if (editingModel) {
-      // Update existing model
-      setModels(models.map(m => m.id === model.id ? model : m));
-      toast.success(`${model.name} updated successfully`);
-    } else {
-      // Add new model
-      setModels([...models, model]);
-      toast.success(`${model.name} added successfully`);
-    }
-    setActiveTab('models');
-    setEditingModel(null);
+    saveMutation.mutate(model);
   };
+  
+  // Display loading or error states
+  if (isLoading) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 py-8 flex items-center justify-center h-64">
+        <p className="text-lg text-muted-foreground">Loading AI models...</p>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-destructive/10 p-4 rounded-md text-destructive">
+          <h3 className="font-semibold">Error loading AI models</h3>
+          <p>{(error as Error).message || 'An unknown error occurred'}</p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['aiModels'] })}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8">
@@ -125,7 +203,13 @@ const AIModelPanel: React.FC = () => {
               </div>
             </div>
 
-            {viewMode === 'grid' ? (
+            {models.length === 0 ? (
+              <div className="text-center py-12 bg-muted/40 rounded-lg border border-dashed">
+                <h3 className="text-xl font-medium mb-2">No AI Models Found</h3>
+                <p className="text-muted-foreground mb-4">Create your first AI model to get started</p>
+                <Button onClick={handleAddNewModel}>Add New Model</Button>
+              </div>
+            ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {models.map((model) => (
                   <ModelCard 
@@ -150,14 +234,14 @@ const AIModelPanel: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="form">
-            <Card className="p-6">
+            <div className="p-6 border rounded-md bg-card">
               <ModelForm 
                 open={true} 
                 onClose={handleFormClose} 
                 onSubmit={handleFormSubmit} 
                 model={editingModel} 
               />
-            </Card>
+            </div>
           </TabsContent>
           
           <TabsContent value="testing">
