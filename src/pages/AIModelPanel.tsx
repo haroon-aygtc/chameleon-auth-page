@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -31,15 +30,18 @@ const AIModelPanel: React.FC = () => {
     error 
   } = useQuery({
     queryKey: ['aiModels'],
-    queryFn: aiModelService.getAllModels,
-    onSuccess: (data) => {
-      // Set the default model as active if available
-      const defaultModel = data.find(m => m.isDefault);
-      if (defaultModel && !activeModel) {
+    queryFn: aiModelService.getAllModels
+  });
+  
+  // Set default model as active if available when models data changes
+  useEffect(() => {
+    if (models.length > 0 && !activeModel) {
+      const defaultModel = models.find(m => m.isDefault);
+      if (defaultModel) {
         setActiveModel(defaultModel);
       }
     }
-  });
+  }, [models, activeModel]);
   
   // Mutation for toggling active status
   const toggleActiveMutation = useMutation({
