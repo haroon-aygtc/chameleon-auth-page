@@ -7,6 +7,11 @@ export const modelFormSchema = z.object({
   type: z.enum(['openai', 'gemini', 'huggingface', 'custom']),
   apiKey: z.string().min(1, { message: 'API Key is required' }),
   basePrompt: z.string().optional(),
+  configuration: z.record(z.any()).default({
+    temperature: 0.7,
+    maxTokens: 1000,
+    topP: 1.0,
+  }),
 });
 
 export type ModelFormValues = z.infer<typeof modelFormSchema>;
