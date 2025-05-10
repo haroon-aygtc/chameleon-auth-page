@@ -3,12 +3,11 @@ import React from 'react';
 import { Role } from '@/services/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from 'lucide-react';
+import { Plus, List, Settings, Shield } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { motion } from 'framer-motion';
-import RoleTable from '@/components/admin/roles/RoleTable';
+import RoleGrid from '@/components/admin/roles/RoleGrid';
 import RoleForm from '@/components/admin/roles/RoleForm';
-import { List, Settings } from 'lucide-react';
 
 interface RolesListProps {
   roles: Role[];
@@ -41,7 +40,10 @@ const RolesList = ({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="space-y-0.5">
-          <CardTitle className="text-xl font-bold">Roles Management</CardTitle>
+          <div className="flex items-center gap-2">
+            <Shield className="h-6 w-6 text-primary" />
+            <CardTitle className="text-xl font-bold">Roles Management</CardTitle>
+          </div>
           <p className="text-muted-foreground text-sm">
             Define roles and assign permissions to control access to system features
           </p>
@@ -66,7 +68,7 @@ const RolesList = ({
               {selectedRole ? 'Edit Role' : 'Create Role'}
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="roles">
             <motion.div
               initial={{ opacity: 0 }}
@@ -78,7 +80,7 @@ const RolesList = ({
                   <p>Loading roles...</p>
                 </div>
               ) : (
-                <RoleTable
+                <RoleGrid
                   roles={roles}
                   onEdit={onEditRole}
                   onDelete={onDeleteRole}
@@ -87,7 +89,7 @@ const RolesList = ({
               )}
             </motion.div>
           </TabsContent>
-          
+
           <TabsContent value="edit">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

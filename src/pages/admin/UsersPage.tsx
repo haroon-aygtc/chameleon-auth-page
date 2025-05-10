@@ -3,29 +3,31 @@ import React, { useState } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminNavTabs from '@/components/admin/AdminNavTabs';
-import UsersList from '@/components/admin/users/UsersList';
-import RoleAssignmentModal from '@/components/admin/users/RoleAssignmentModal';
+import UserManagement from '@/components/admin/users/UserManagement';
+import UserRoleAssignment from '@/components/admin/users/UserRoleAssignment';
 import { useUserManagement } from '@/hooks/useUserManagement';
 
 const UsersPage = () => {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
-  
+
   const {
     users,
     loading,
-    showForm,
     currentUser,
-    roleModalOpen,
     selectedUser,
-    setShowForm,
-    setCurrentUser,
+    activeTab,
+    showRoleAssignment,
+    setActiveTab,
     handleUserSubmit,
     handleUserDelete,
     handleAssignRoles,
     handleSaveRoleAssignments,
-    setRoleModalOpen
+    setShowRoleAssignment,
+    handleCreateUser,
+    handleEditUser,
+    handleCancelForm
   } = useUserManagement();
-  
+
   // Navigation tabs
   const tabs = [
     { label: "Overview", path: "/admin" },
@@ -66,37 +68,29 @@ const UsersPage = () => {
           {/* Navigation Tabs */}
           <AdminNavTabs items={tabs} />
 
-          <UsersList
-            users={users}
-            loading={loading}
-            showForm={showForm}
-            currentUser={currentUser}
-            onAddNewClick={() => {
-              setCurrentUser(undefined);
-              setShowForm(true);
-            }}
-            onEditUser={(user) => {
-              setCurrentUser(user);
-              setShowForm(true);
-            }}
-            onDeleteUser={handleUserDelete}
-            onAssignRoles={handleAssignRoles}
-            onFormSubmit={handleUserSubmit}
-            onFormCancel={() => {
-              setShowForm(false);
-              setCurrentUser(undefined);
-            }}
-          />
+          {!showRoleAssignment ? (
+            <UserManagement
+              users={users}
+              loading={loading}
+              activeTab={activeTab}
+              currentUser={currentUser}
+              onTabChange={setActiveTab}
+              onCreateUser={handleCreateUser}
+              onEditUser={handleEditUser}
+              onDeleteUser={handleUserDelete}
+              onAssignRoles={handleAssignRoles}
+              onUserSubmit={handleUserSubmit}
+              onCancelForm={handleCancelForm}
+            />
+          ) : (
+            <UserRoleAssignment
+              user={selectedUser}
+              onSave={handleSaveRoleAssignments}
+              onBack={() => setShowRoleAssignment(false)}
+            />
+          )}
         </main>
       </div>
-
-      {/* Role Assignment Modal */}
-      <RoleAssignmentModal
-        isOpen={roleModalOpen}
-        user={selectedUser}
-        onClose={() => setRoleModalOpen(false)}
-        onSave={handleSaveRoleAssignments}
-      />
     </div>
   );
 };

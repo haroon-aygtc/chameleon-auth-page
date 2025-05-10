@@ -4,20 +4,20 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminNavTabs from '@/components/admin/AdminNavTabs';
 import RolesList from '@/components/admin/roles/RolesList';
-import PermissionAssignmentModal from '@/components/admin/roles/PermissionAssignmentModal';
+import RolePermissionAssignment from '@/components/admin/roles/RolePermissionAssignment';
 import { useRoleManagement } from '@/hooks/useRoleManagement';
 
 const RolesPage = () => {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
-  
+
   const {
     roles,
     isLoading,
-    permissionModalOpen,
     selectedRole,
     activeTab,
+    showPermissionAssignment,
     setActiveTab,
-    setPermissionModalOpen,
+    setShowPermissionAssignment,
     handleRoleSubmit,
     handleRoleDelete,
     handleAssignPermissions,
@@ -26,7 +26,7 @@ const RolesPage = () => {
     handleCreateRole,
     handleCancelForm
   } = useRoleManagement();
-  
+
   // Navigation tabs
   const tabs = [
     { label: "Overview", path: "/admin" },
@@ -67,29 +67,29 @@ const RolesPage = () => {
           {/* Navigation Tabs */}
           <AdminNavTabs items={tabs} />
 
-          <RolesList
-            roles={roles}
-            isLoading={isLoading}
-            activeTab={activeTab}
-            selectedRole={selectedRole || undefined}
-            onTabChange={setActiveTab}
-            onCreateRole={handleCreateRole}
-            onEditRole={handleEditRole}
-            onDeleteRole={handleRoleDelete}
-            onAssignPermissions={handleAssignPermissions}
-            onRoleSubmit={handleRoleSubmit}
-            onCancelForm={handleCancelForm}
-          />
+          {!showPermissionAssignment ? (
+            <RolesList
+              roles={roles}
+              isLoading={isLoading}
+              activeTab={activeTab}
+              selectedRole={selectedRole || undefined}
+              onTabChange={setActiveTab}
+              onCreateRole={handleCreateRole}
+              onEditRole={handleEditRole}
+              onDeleteRole={handleRoleDelete}
+              onAssignPermissions={handleAssignPermissions}
+              onRoleSubmit={handleRoleSubmit}
+              onCancelForm={handleCancelForm}
+            />
+          ) : (
+            <RolePermissionAssignment
+              role={selectedRole}
+              onSave={handleSavePermissionAssignments}
+              onBack={() => setShowPermissionAssignment(false)}
+            />
+          )}
         </main>
       </div>
-
-      {/* Permission Assignment Modal */}
-      <PermissionAssignmentModal
-        isOpen={permissionModalOpen}
-        role={selectedRole}
-        onClose={() => setPermissionModalOpen(false)}
-        onSave={handleSavePermissionAssignments}
-      />
     </div>
   );
 };

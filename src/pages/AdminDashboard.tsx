@@ -1,17 +1,43 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Code, BarChart } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminNavTabs from '@/components/admin/AdminNavTabs';
 import DashboardMetrics from '@/components/admin/DashboardMetrics';
 import QuickActions from '@/components/admin/QuickActions';
 import SystemStatus from '@/components/admin/SystemStatus';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
-const AdminDashboard = () => {
+const Dashboard = () => {
   // Feature toggle state
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
-  
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Show welcome toast on initial render
+  useEffect(() => {
+    if (user) {
+      const isAdmin = user.roles?.includes('Admin');
+      toast({
+        title: isAdmin ? "Welcome to Admin Dashboard" : "Welcome to Dashboard",
+        description: `Hello, ${user.name}! ${isAdmin ? "You're logged in as an administrator." : ""}`,
+        variant: "default",
+        className: "bg-green-500 text-white border-green-600",
+      });
+    }
+  }, [user, toast]);
+
   // Mock data for dashboard metrics
   const dashboardMetrics = [
     { title: "Total Conversations", value: analyticsEnabled ? "14,328" : "Loading...", description: analyticsEnabled ? "+28% from last month" : "Fetching data..." },
@@ -62,9 +88,9 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <AdminHeader 
-          analyticsEnabled={analyticsEnabled} 
-          onAnalyticsToggle={handleAnalyticsToggle} 
+        <AdminHeader
+          analyticsEnabled={analyticsEnabled}
+          onAnalyticsToggle={handleAnalyticsToggle}
         />
 
         {/* Main Dashboard */}
@@ -93,4 +119,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default Dashboard;

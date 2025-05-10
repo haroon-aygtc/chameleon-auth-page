@@ -6,12 +6,18 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  roles: string[];
+  roles: string[] | any[]; // Allow for role objects
   avatar?: string;
   isActive?: boolean;
   lastLogin?: string;
-  createdAt: string;
-  updatedAt: string;
+  // Password fields (only used for creation/updates)
+  password?: string;
+  password_confirmation?: string;
+  // Support both camelCase and snake_case formats
+  createdAt?: string;
+  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /**
@@ -21,12 +27,17 @@ export interface Role {
   id: string;
   name: string;
   description: string;
-  permissions: string[];
+  permissions: string[] | any[]; // Allow for permission objects
   color?: string;
   isSystem?: boolean;
+  is_system?: boolean; // Support snake_case
   userCount?: number;
-  createdAt: string;
-  updatedAt: string;
+  user_count?: number; // Support snake_case
+  // Support both camelCase and snake_case formats
+  createdAt?: string;
+  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /**
@@ -38,10 +49,15 @@ export interface Permission {
   description: string;
   category: string;
   isSystem?: boolean;
+  is_system?: boolean; // Support snake_case
   createdBy?: string;
+  created_by?: string; // Support snake_case
   module?: string;
-  createdAt: string;
-  updatedAt: string;
+  // Support both camelCase and snake_case formats
+  createdAt?: string;
+  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /**

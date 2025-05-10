@@ -20,7 +20,7 @@ const PermissionsPage = () => {
     handlePermissionSubmit,
     handlePermissionDelete
   } = usePermissions();
-  
+
   // Navigation tabs
   const tabs = [
     { label: "Overview", path: "/admin" },

@@ -3,17 +3,17 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Role } from '@/services/types';
 import roleService from '@/services/roleService';
-import { useToast } from "@/hooks/use-toast";
+import { showSuccessToast, handleApiError } from "@/utils/toast-utils";
 
 export function useRoleManagement() {
-  const { toast } = useToast();
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
+  const [showPermissionAssignment, setShowPermissionAssignment] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [activeTab, setActiveTab] = useState<string>("roles");
-  
+
   // Fetch roles with React Query
-  const { 
-    data: roles = [], 
+  const {
+    data: roles = [],
     isLoading,
     refetch: refetchRoles
   } = useQuery({
@@ -27,29 +27,22 @@ export function useRoleManagement() {
       if (selectedRole && selectedRole.id) {
         // Update existing role
         await roleService.update(selectedRole.id, roleData);
-        toast({
-          title: "Success",
-          description: "Role updated successfully",
-        });
+        showSuccessToast("Success", "Role updated successfully");
       } else {
         // Create new role
         await roleService.create(roleData);
-        toast({
-          title: "Success",
-          description: "Role created successfully",
-        });
+        showSuccessToast("Success", "Role created successfully");
       }
-      
+
       refetchRoles();
       setActiveTab("roles");
       setSelectedRole(null);
     } catch (error) {
       console.error("Error saving role:", error);
-      toast({
-        title: "Error",
-        description: selectedRole ? "Failed to update role" : "Failed to create role",
-        variant: "destructive",
-      });
+      handleApiError(
+        error,
+        selectedRole ? "Failed to update role" : "Failed to create role"
+      );
     }
   };
 
@@ -58,24 +51,17 @@ export function useRoleManagement() {
     try {
       await roleService.delete(roleId);
       refetchRoles();
-      toast({
-        title: "Success",
-        description: "Role deleted successfully",
-      });
+      showSuccessToast("Success", "Role deleted successfully");
     } catch (error) {
       console.error("Error deleting role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete role",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to delete role");
     }
   };
 
   // Handle permission assignment
   const handleAssignPermissions = (role: Role) => {
     setSelectedRole(role);
-    setPermissionModalOpen(true);
+    setShowPermissionAssignment(true);
   };
 
   // Save permission assignments
@@ -83,18 +69,11 @@ export function useRoleManagement() {
     try {
       await roleService.assignPermissions(roleId, permissionIds);
       refetchRoles();
-      setPermissionModalOpen(false);
-      toast({
-        title: "Success",
-        description: "Permissions assigned successfully",
-      });
+      setShowPermissionAssignment(false);
+      showSuccessToast("Success", "Permissions assigned successfully");
     } catch (error) {
       console.error("Error assigning permissions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to assign permissions",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to assign permissions");
     }
   };
 
@@ -122,9 +101,11 @@ export function useRoleManagement() {
     permissionModalOpen,
     selectedRole,
     activeTab,
+    showPermissionAssignment,
     setActiveTab,
     setPermissionModalOpen,
     setSelectedRole,
+    setShowPermissionAssignment,
     handleRoleSubmit,
     handleRoleDelete,
     handleAssignPermissions,
