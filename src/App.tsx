@@ -19,6 +19,7 @@ import Unauthorized from "./pages/Unauthorized";
 import UsersPage from "./pages/admin/UsersPage";
 import RolesPage from "./pages/admin/RolesPage";
 import PermissionsPage from "./pages/admin/PermissionsPage";
+import AIModelPanel from "./pages/AIModelPanel";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/admin/users" element={<UsersPage />} />
                 <Route path="/admin/roles" element={<RolesPage />} />
                 <Route path="/admin/permissions" element={<PermissionsPage />} />
+                <Route path="/admin/ai-models" element={<AIModelPanel />} />
 
                 {/* Redirect /dashboard to /admin for consistency */}
                 <Route path="/dashboard" element={<Navigate to="/admin" replace />} />

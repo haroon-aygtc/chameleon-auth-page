@@ -1,184 +1,141 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { cn } from '@/lib/utils';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Users,
+  Shield,
+  KeyRound,
+  Bot,
+  ChevronDown,
+  LogOut,
+  Settings,
+  Menu
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import ChatLogo from '@/components/ChatLogo';
-import { ChevronLeft, ChevronRight, Users, Settings, Key, Shield, List, LogOut } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+import { useMobile } from '@/hooks/use-mobile';
 
-interface SidebarItemProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
+interface SidebarProps {
   isCollapsed: boolean;
-  isActive?: boolean;
-  children?: React.ReactNode;
+  onToggle: () => void;
 }
 
-const SidebarItem = ({ to, icon, label, isCollapsed, isActive }: SidebarItemProps) => {
-  return (
-    <li>
-      <Link
-        to={to}
-        className={cn(
-          "flex items-center p-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-          !isCollapsed && "justify-between"
-        )}
-      >
-        <div className="flex items-center">
-          <span className={cn("inline-block mr-3", isCollapsed ? "w-5 h-5" : "w-5 h-5")}>{icon}</span>
-          {!isCollapsed && <span>{label}</span>}
-        </div>
-      </Link>
-    </li>
-  );
-};
+const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
+  const location = useLocation();
+  const { isMobile } = useMobile();
 
-
-
-const AdminSidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user, logout } = useAuth();
-
-  // Check if user has admin role
-  const isAdmin = user?.roles?.includes('Admin');
-
-  // Debug user roles
-  console.log('User:', user);
-  console.log('User roles:', user?.roles);
-  console.log('Is Admin:', isAdmin);
-
-  // Get user initials for avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+  const isActive = (path: string) => {
+    return location.pathname === path;
   };
 
-  const userInitials = user?.name ? getInitials(user.name) : 'U';
+  const renderNavItem = (path: string, label: string, icon: React.ReactNode) => (
+    <Link to={path} className="w-full">
+      <Button
+        variant="ghost"
+        className={cn(
+          "w-full justify-start gap-2 mb-1",
+          isActive(path) 
+            ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+        )}
+      >
+        {icon}
+        {!isCollapsed && <span>{label}</span>}
+      </Button>
+    </Link>
+  );
 
   return (
-    <motion.aside
+    <div
       className={cn(
-        "bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border transition-all",
+        "hidden md:flex h-screen flex-col p-3 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300",
         isCollapsed ? "w-16" : "w-60"
       )}
-      animate={{ width: isCollapsed ? "4rem" : "15rem" }}
-      transition={{ duration: 0.3 }}
     >
-      {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border flex justify-between items-center">
-        {!isCollapsed && <ChatLogo className="text-lg" />}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </Button>
+      <div className="flex items-center justify-between mb-4">
+        {!isCollapsed ? (
+          <Link to="/admin" className="flex items-center">
+            <ChatLogo />
+          </Link>
+        ) : (
+          <Link to="/admin" className="flex items-center justify-center w-full">
+            <ChatLogo variant="compact" />
+          </Link>
+        )}
+        {!isCollapsed && (
+          <Button variant="ghost" size="icon" onClick={onToggle} className="p-0">
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        )}
       </div>
-
-      {/* User Profile */}
-      <div className={cn(
-        "p-4 flex items-center border-b border-sidebar-border",
-        isCollapsed ? "justify-center" : "space-x-3"
-      )}>
-        <div className="h-10 w-10 bg-chatgold/20 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-chatgold font-medium text-sm">{userInitials}</span>
-        </div>
-        {!isCollapsed && user && (
-          <div className="flex flex-col">
-            <div className="flex items-center">
-              <span className="text-sm font-medium">{user.name}</span>
-              {isAdmin && (
-                <span className="ml-2 px-2 py-0.5 bg-chatgold/20 text-chatgold rounded-full text-xs">Admin</span>
-              )}
-            </div>
-            <span className="text-xs text-sidebar-foreground/70">{user.email}</span>
-          </div>
+      
+      <div className="mb-4">
+        {isCollapsed && (
+          <Button variant="ghost" size="icon" onClick={onToggle} className="w-full p-0 mb-2">
+            <Menu className="h-4 w-4" />
+          </Button>
         )}
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 p-2 overflow-y-auto">
-        <ul className="space-y-1">
-          <SidebarItem
-            to="/admin"
-            icon={<Settings />}
-            label="Dashboard"
-            isActive={true}
-            isCollapsed={isCollapsed}
-          />
-
-          {/* Admin-only menu items */}
-          {isAdmin && (
-            <>
-              <SidebarItem
-                to="/admin/users"
-                icon={<Users />}
-                label="User Management"
-                isCollapsed={isCollapsed}
-              />
-
-              <SidebarItem
-                to="/admin/roles"
-                icon={<Shield />}
-                label="Role Management"
-                isCollapsed={isCollapsed}
-              />
-
-              <SidebarItem
-                to="/admin/permissions"
-                icon={<Key />}
-                label="Permission Management"
-                isCollapsed={isCollapsed}
-              />
-            </>
-          )}
-
+      <ScrollArea className="flex-1">
+        <div className="space-y-2">
+          {isCollapsed ? null : <p className="text-xs font-semibold mb-2 text-sidebar-foreground/70">ADMIN</p>}
           
-
-          <SidebarItem
-            to="/admin/widget-config"
-            icon={<Settings />}
-            label="Widget Config"
-            isCollapsed={isCollapsed}
-          />
-
-          {isAdmin && (
-            <SidebarItem
-              to="/admin/context-rules"
-              icon={<List />}
-              label="Context Rules"
-              isCollapsed={isCollapsed}
-            />
+          {renderNavItem(
+            "/admin", 
+            "Dashboard", 
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
           )}
-        </ul>
-      </nav>
-
-      {/* Logout */}
-      <div className="p-2 mt-auto border-t border-sidebar-border">
-        <button
-          onClick={logout}
-          className={cn(
-            "w-full flex items-center p-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            isCollapsed && "justify-center"
+          
+          {renderNavItem(
+            "/admin/users", 
+            "Users", 
+            <Users size={16} />
           )}
-        >
-          <span className={cn("inline-block", isCollapsed ? "w-5 h-5" : "w-5 h-5 mr-3")}>
-            <LogOut size={18} />
-          </span>
-          {!isCollapsed && "Logout"}
-        </button>
+          
+          {renderNavItem(
+            "/admin/roles", 
+            "Roles", 
+            <Shield size={16} />
+          )}
+          
+          {renderNavItem(
+            "/admin/permissions", 
+            "Permissions", 
+            <KeyRound size={16} />
+          )}
+
+          {/* New AI Models section */}
+          <Separator className="my-3" />
+          {isCollapsed ? null : <p className="text-xs font-semibold mb-2 text-sidebar-foreground/70">AI MODELS</p>}
+          
+          {renderNavItem(
+            "/admin/ai-models",
+            "AI Models",
+            <Bot size={16} />
+          )}
+          
+          <Separator className="my-3" />
+          {isCollapsed ? null : <p className="text-xs font-semibold mb-2 text-sidebar-foreground/70">ACCOUNT</p>}
+          
+          {renderNavItem(
+            "/admin/settings", 
+            "Settings", 
+            <Settings size={16} />
+          )}
+        </div>
+      </ScrollArea>
+      
+      <div className="mt-auto">
+        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/90 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground">
+          <LogOut size={16} />
+          {!isCollapsed && <span>Logout</span>}
+        </Button>
       </div>
-    </motion.aside>
+    </div>
   );
 };
 
