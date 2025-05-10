@@ -20,6 +20,18 @@ class Permission extends Model
         'name',
         'description',
         'category',
+        'module',
+        'is_system',
+        'created_by',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_system' => 'boolean',
     ];
 
     /**
