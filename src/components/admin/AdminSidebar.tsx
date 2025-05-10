@@ -2,17 +2,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Users,
-  Shield,
-  KeyRound,
   Bot,
   ChevronDown,
-  LogOut,
-  Settings,
   Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ChatLogo from '@/components/ChatLogo';
 import { cn } from '@/lib/utils';
@@ -91,13 +85,6 @@ const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
           )}
         </div>
       </ScrollArea>
-      
-      <div className="mt-auto">
-        <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/90 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground">
-          <LogOut size={16} />
-          {!isCollapsed && <span>Logout</span>}
-        </Button>
-      </div>
     </div>
   );
 };
