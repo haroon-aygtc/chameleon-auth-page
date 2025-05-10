@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Permission } from "@/services/mockDatabase";
+import { Permission } from "@/services/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 

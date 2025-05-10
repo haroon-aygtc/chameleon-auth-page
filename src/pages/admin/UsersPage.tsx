@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, userService } from '@/services/mockDatabase';
+import { User } from '@/services/types';
+import userService from '@/services/userService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AdminSidebar from '@/components/admin/AdminSidebar';

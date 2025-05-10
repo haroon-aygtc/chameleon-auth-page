@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Role, roleService } from "@/services/mockDatabase";
+import { User, Role } from "@/services/types";
+import roleService from "@/services/roleService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

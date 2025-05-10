@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Permission } from "@/services/mockDatabase";
+import { Permission } from "@/services/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

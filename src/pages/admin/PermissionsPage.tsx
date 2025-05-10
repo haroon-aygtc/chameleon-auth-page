@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Permission, permissionService } from '@/services/mockDatabase';
+import { Permission } from '@/services/types';
+import permissionService from '@/services/permissionService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AdminSidebar from '@/components/admin/AdminSidebar';

@@ -69,19 +69,6 @@ const permissionService = {
   },
 
   /**
-   * Get permissions by module
-   */
-  getByModule: async (module: string): Promise<Permission[]> => {
-    try {
-      const response = await api.get(`/permissions/module/${module}`);
-      return response.data.data;
-    } catch (error) {
-      console.error(`Error fetching permissions for module ${module}:`, error);
-      throw error;
-    }
-  },
-
-  /**
    * Get permissions by category
    */
   getByCategory: async (category: string): Promise<Permission[]> => {
