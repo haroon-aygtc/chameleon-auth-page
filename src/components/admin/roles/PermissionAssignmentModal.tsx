@@ -17,14 +17,15 @@ import {
   TabsContent
 } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, CheckSquare, Square, Save } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from '@tanstack/react-query';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { usePermissionGrouping } from '@/hooks/usePermissionGrouping';
+import AllModulesTabContent from './AllModulesTabContent';
+import ModuleTabContent from './ModuleTabContent';
 
 interface PermissionAssignmentModalProps {
   isOpen: boolean;
@@ -36,9 +37,6 @@ interface PermissionAssignmentModalProps {
   onClose: () => void;
   onSave: (roleId: string, permissionIds: string[]) => void;
 }
-
-type GroupedPermissions = Record<string, Permission[]>;
-type ModulePermissions = Record<string, GroupedPermissions>;
 
 const PermissionAssignmentModal = ({
   isOpen,
@@ -65,59 +63,12 @@ const PermissionAssignmentModal = ({
     }
   }, [role]);
   
-  // Group permissions by module and category
-  const modulePermissions: ModulePermissions = permissions.reduce((modules, permission) => {
-    const module = permission.module || 'General';
-    const category = permission.category;
-    
-    if (!modules[module]) {
-      modules[module] = {};
-    }
-    
-    if (!modules[module][category]) {
-      modules[module][category] = [];
-    }
-    
-    modules[module][category].push(permission);
-    return modules;
-  }, {} as ModulePermissions);
-  
-  // Get all available modules
-  const modules = Object.keys(modulePermissions).sort();
-  
-  // Filter permissions based on search and active tab
-  const getFilteredPermissions = () => {
-    const result: ModulePermissions = {};
-    
-    Object.entries(modulePermissions).forEach(([module, categories]) => {
-      // Skip if not in the active module tab
-      if (activeTab !== 'all' && activeTab !== module) {
-        return;
-      }
-      
-      const filteredModule: GroupedPermissions = {};
-      
-      Object.entries(categories).forEach(([category, perms]) => {
-        const filteredPerms = perms.filter(p => 
-          searchQuery === '' || 
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-          p.description.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        
-        if (filteredPerms.length > 0) {
-          filteredModule[category] = filteredPerms;
-        }
-      });
-      
-      if (Object.keys(filteredModule).length > 0) {
-        result[module] = filteredModule;
-      }
-    });
-    
-    return result;
-  };
-  
-  const filteredPermissions = getFilteredPermissions();
+  // Use our custom hook to handle permission grouping and filtering
+  const { modules, filteredPermissions } = usePermissionGrouping(
+    permissions,
+    searchQuery,
+    activeTab
+  );
   
   // Handle permission toggle
   const handlePermissionToggle = (permissionId: string) => {
@@ -149,7 +100,7 @@ const PermissionAssignmentModal = ({
   };
   
   // Toggle all permissions in a module
-  const toggleAllModulePermissions = (modulePermissions: GroupedPermissions) => {
+  const toggleAllModulePermissions = (modulePermissions: Record<string, Permission[]>) => {
     const allPermissionIds = Object.values(modulePermissions)
       .flat()
       .map(permission => permission.id);
@@ -244,13 +195,30 @@ const PermissionAssignmentModal = ({
           
           {/* All modules tab content */}
           <TabsContent value="all" className="mt-0">
-            {renderModulesContent(filteredPermissions)}
+            <AllModulesTabContent
+              modulesData={filteredPermissions}
+              selectedPermissions={selectedPermissions}
+              onPermissionToggle={handlePermissionToggle}
+              onCategoryToggle={toggleCategory}
+              onModuleToggle={toggleAllModulePermissions}
+              searchQuery={searchQuery}
+            />
           </TabsContent>
           
           {/* Individual module tab content */}
           {modules.map(module => (
             <TabsContent key={module} value={module} className="mt-0">
-              {renderModuleContent(module, filteredPermissions[module])}
+              <ScrollArea className="h-[50vh] pr-4">
+                <ModuleTabContent
+                  moduleName={module}
+                  moduleData={filteredPermissions[module]}
+                  selectedPermissions={selectedPermissions}
+                  onPermissionToggle={handlePermissionToggle}
+                  onCategoryToggle={toggleCategory}
+                  onModuleToggle={toggleAllModulePermissions}
+                  searchQuery={searchQuery}
+                />
+              </ScrollArea>
             </TabsContent>
           ))}
         </Tabs>
@@ -272,176 +240,6 @@ const PermissionAssignmentModal = ({
       </DialogContent>
     </Dialog>
   );
-  
-  // Helper function to render module content
-  function renderModuleContent(moduleName: string, moduleData: GroupedPermissions) {
-    if (!moduleData || Object.keys(moduleData).length === 0) {
-      return (
-        <div className="text-center py-8 text-muted-foreground">
-          {searchQuery ? "No permissions match your search" : "No permissions available"}
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="font-semibold text-lg">{moduleName}</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => toggleAllModulePermissions(moduleData)}
-            className="text-xs"
-          >
-            {Object.values(moduleData).flat().every(p => selectedPermissions.includes(p.id))
-              ? 'Deselect All'
-              : 'Select All'}
-          </Button>
-        </div>
-        
-        <ScrollArea className="h-[50vh] pr-4">
-          <div className="space-y-6">
-            {Object.entries(moduleData).map(([category, permissions]) => (
-              <div key={`${moduleName}-${category}`} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`category-${moduleName}-${category}`}
-                      checked={permissions.every(p => selectedPermissions.includes(p.id))}
-                      onCheckedChange={() => toggleCategory(permissions)}
-                      className="h-5 w-5"
-                    />
-                    <Label 
-                      htmlFor={`category-${moduleName}-${category}`}
-                      className="text-base font-medium cursor-pointer"
-                    >
-                      {category} ({permissions.length})
-                    </Label>
-                  </div>
-                </div>
-                
-                <div className="ml-7 space-y-2 divide-y divide-border rounded-md border">
-                  {permissions.map((permission) => (
-                    <div 
-                      key={permission.id} 
-                      className="flex items-start p-3 hover:bg-muted/30 transition-colors"
-                    >
-                      <Checkbox
-                        id={`permission-${permission.id}`}
-                        checked={selectedPermissions.includes(permission.id)}
-                        onCheckedChange={() => handlePermissionToggle(permission.id)}
-                        className="mt-1 h-4 w-4"
-                      />
-                      <div className="ml-3 grid gap-0.5">
-                        <Label 
-                          htmlFor={`permission-${permission.id}`} 
-                          className="font-medium cursor-pointer text-sm"
-                        >
-                          {permission.name}
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          {permission.description}
-                        </p>
-                        {permission.isSystem && (
-                          <Badge variant="outline" className="mt-1 w-fit text-xs">System</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-    );
-  }
-  
-  // Helper function to render all modules content
-  function renderModulesContent(modulesData: ModulePermissions) {
-    if (Object.keys(modulesData).length === 0) {
-      return (
-        <div className="text-center py-8 text-muted-foreground">
-          {searchQuery ? "No permissions match your search" : "No permissions available"}
-        </div>
-      );
-    }
-    
-    return (
-      <ScrollArea className="h-[50vh] pr-4">
-        <div className="space-y-8">
-          {Object.entries(modulesData).map(([moduleName, moduleData]) => (
-            <div key={moduleName} className="space-y-4">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="font-semibold text-lg">{moduleName}</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleAllModulePermissions(moduleData)}
-                  className="text-xs"
-                >
-                  {Object.values(moduleData).flat().every(p => selectedPermissions.includes(p.id))
-                    ? 'Deselect All'
-                    : 'Select All'}
-                </Button>
-              </div>
-              
-              {Object.entries(moduleData).map(([category, permissions]) => (
-                <div key={`${moduleName}-${category}`} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`all-category-${moduleName}-${category}`}
-                        checked={permissions.every(p => selectedPermissions.includes(p.id))}
-                        onCheckedChange={() => toggleCategory(permissions)}
-                        className="h-5 w-5"
-                      />
-                      <Label 
-                        htmlFor={`all-category-${moduleName}-${category}`}
-                        className="text-base font-medium cursor-pointer"
-                      >
-                        {category} ({permissions.length})
-                      </Label>
-                    </div>
-                  </div>
-                  
-                  <div className="ml-7 space-y-0 divide-y divide-border rounded-md border">
-                    {permissions.map((permission) => (
-                      <div 
-                        key={permission.id} 
-                        className="flex items-start p-3 hover:bg-muted/30 transition-colors"
-                      >
-                        <Checkbox
-                          id={`all-permission-${permission.id}`}
-                          checked={selectedPermissions.includes(permission.id)}
-                          onCheckedChange={() => handlePermissionToggle(permission.id)}
-                          className="mt-1 h-4 w-4"
-                        />
-                        <div className="ml-3 grid gap-0.5">
-                          <Label 
-                            htmlFor={`all-permission-${permission.id}`} 
-                            className="font-medium cursor-pointer text-sm"
-                          >
-                            {permission.name}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {permission.description}
-                          </p>
-                          {permission.isSystem && (
-                            <Badge variant="outline" className="mt-1 w-fit text-xs">System</Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
-    );
-  }
 };
 
 export default PermissionAssignmentModal;
