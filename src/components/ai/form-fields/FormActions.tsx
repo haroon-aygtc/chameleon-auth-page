@@ -9,7 +9,7 @@ interface FormActionsProps {
 
 const FormActions: React.FC<FormActionsProps> = ({ onCancel, isEditing }) => {
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex justify-end gap-2 mt-8">
       <Button type="button" variant="outline" onClick={onCancel}>
         Cancel
       </Button>

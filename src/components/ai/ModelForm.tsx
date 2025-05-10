@@ -51,12 +51,18 @@ const ModelForm: React.FC<ModelFormProps> = ({
     });
   };
 
-  // For the dialog mode (used in quick in-page editing)
+  // Now the form is always shown within a tab
   if (!open) return null;
 
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold">{model ? 'Edit Model' : 'Add New Model'}</h2>
+          <p className="text-muted-foreground">
+            {model ? 'Update your AI model details' : 'Configure a new AI model to use in your application'}
+          </p>
+        </div>
         <ModelNameField />
         <ModelDescriptionField />
         <ModelTypeField />
