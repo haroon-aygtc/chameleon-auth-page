@@ -19,7 +19,7 @@ import Unauthorized from "./pages/Unauthorized";
 import UsersPage from "./pages/admin/UsersPage";
 import RolesPage from "./pages/admin/RolesPage";
 import PermissionsPage from "./pages/admin/PermissionsPage";
-import AIModelPanel from "./pages/AIModelPanel";
+import AIModelsPage from "./pages/admin/AIModelsPage";
 
 const queryClient = new QueryClient();
 
@@ -40,14 +40,14 @@ const App = () => (
 
               {/* Protected routes - require authentication */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin" element={<Navigate to="/admin/ai-models" replace />} />
                 <Route path="/admin/users" element={<UsersPage />} />
                 <Route path="/admin/roles" element={<RolesPage />} />
                 <Route path="/admin/permissions" element={<PermissionsPage />} />
-                <Route path="/admin/ai-models" element={<AIModelPanel />} />
+                <Route path="/admin/ai-models" element={<AIModelsPage />} />
 
                 {/* Redirect /dashboard to /admin for consistency */}
-                <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+                <Route path="/dashboard" element={<Navigate to="/admin/ai-models" replace />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

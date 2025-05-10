@@ -82,49 +82,12 @@ const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
 
       <ScrollArea className="flex-1">
         <div className="space-y-2">
-          {isCollapsed ? null : <p className="text-xs font-semibold mb-2 text-sidebar-foreground/70">ADMIN</p>}
-          
-          {renderNavItem(
-            "/admin", 
-            "Dashboard", 
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
-          )}
-          
-          {renderNavItem(
-            "/admin/users", 
-            "Users", 
-            <Users size={16} />
-          )}
-          
-          {renderNavItem(
-            "/admin/roles", 
-            "Roles", 
-            <Shield size={16} />
-          )}
-          
-          {renderNavItem(
-            "/admin/permissions", 
-            "Permissions", 
-            <KeyRound size={16} />
-          )}
-
-          {/* New AI Models section */}
-          <Separator className="my-3" />
           {isCollapsed ? null : <p className="text-xs font-semibold mb-2 text-sidebar-foreground/70">AI MODELS</p>}
           
           {renderNavItem(
             "/admin/ai-models",
             "AI Models",
             <Bot size={16} />
-          )}
-          
-          <Separator className="my-3" />
-          {isCollapsed ? null : <p className="text-xs font-semibold mb-2 text-sidebar-foreground/70">ACCOUNT</p>}
-          
-          {renderNavItem(
-            "/admin/settings", 
-            "Settings", 
-            <Settings size={16} />
           )}
         </div>
       </ScrollArea>
