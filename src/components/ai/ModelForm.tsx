@@ -66,10 +66,14 @@ const ModelForm: React.FC<ModelFormProps> = ({
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     onSubmit({
-      id: model?.id || '',
-      ...values,
-      isActive: model?.isActive || true,
-      isDefault: model?.isDefault || false,
+      id: model?.id || Date.now().toString(),
+      name: values.name,
+      description: values.description,
+      type: values.type,
+      apiKey: values.apiKey,
+      basePrompt: values.basePrompt || 'You are a helpful AI assistant.',
+      isActive: model?.isActive ?? true,
+      isDefault: model?.isDefault ?? false,
       configuration: model?.configuration || {},
     });
   };

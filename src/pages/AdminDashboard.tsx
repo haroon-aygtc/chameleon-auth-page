@@ -12,11 +12,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
+  // State for sidebar
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
   // Feature toggle state
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Toggle sidebar
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => !prev);
+  };
 
   // Check if user is authenticated
   useEffect(() => {
@@ -83,7 +91,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar Navigation */}
-      <AdminSidebar />
+      <AdminSidebar isCollapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
