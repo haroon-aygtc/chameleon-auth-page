@@ -3,7 +3,7 @@ import React from 'react';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Save } from 'lucide-react';
+import { Save, Loader2 } from 'lucide-react';
 
 interface PermissionModalFooterProps {
   selectedCount: number;
@@ -27,12 +27,21 @@ const PermissionModalFooter = ({
           {selectedCount} of {totalCount} selected
         </Badge>
       </div>
-      <Button variant="outline" onClick={onClose}>
+      <Button variant="outline" onClick={onClose} disabled={isLoading}>
         Cancel
       </Button>
-      <Button onClick={onSave} disabled={isLoading} className="flex items-center">
-        <Save className="mr-2 h-4 w-4" />
-        Save Changes
+      <Button onClick={onSave} disabled={isLoading} className="flex items-center gap-2">
+        {isLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Saving...
+          </>
+        ) : (
+          <>
+            <Save className="h-4 w-4" />
+            Save Changes
+          </>
+        )}
       </Button>
     </DialogFooter>
   );

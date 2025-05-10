@@ -4,8 +4,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
+use App\Models\User;
 use App\Services\RoleService;
 use App\Http\Resources\RoleResource;
+use App\Http\Resources\UserResource;
 use App\Http\Requests\StoreRoleRequest;
 use App\Http\Requests\UpdateRoleRequest;
 use Illuminate\Http\Request;
@@ -29,7 +31,7 @@ class RoleController extends Controller
      */
     public function index(): AnonymousResourceCollection
     {
-        $roles = Role::with('permissions')->get();
+        $roles = Role::with(['permissions', 'users'])->get();
         return RoleResource::collection($roles);
     }
 
@@ -39,7 +41,7 @@ class RoleController extends Controller
     public function store(StoreRoleRequest $request): RoleResource
     {
         $role = $this->roleService->create($request->validated());
-        return new RoleResource($role->load('permissions'));
+        return new RoleResource($role->load(['permissions', 'users']));
     }
 
     /**
@@ -47,7 +49,7 @@ class RoleController extends Controller
      */
     public function show(Role $role): RoleResource
     {
-        return new RoleResource($role->load('permissions'));
+        return new RoleResource($role->load(['permissions', 'users']));
     }
 
     /**
@@ -56,7 +58,7 @@ class RoleController extends Controller
     public function update(UpdateRoleRequest $request, Role $role): RoleResource
     {
         $role = $this->roleService->update($role, $request->validated());
-        return new RoleResource($role->load('permissions'));
+        return new RoleResource($role->load(['permissions', 'users']));
     }
 
     /**
@@ -79,6 +81,15 @@ class RoleController extends Controller
         ]);
 
         $role = $this->roleService->assignPermissions($role, $request->permissions);
-        return new RoleResource($role->load('permissions'));
+        return new RoleResource($role->load(['permissions', 'users']));
+    }
+
+    /**
+     * Get users assigned to a role.
+     */
+    public function getRoleUsers(Role $role): AnonymousResourceCollection
+    {
+        $users = $role->users;
+        return UserResource::collection($users);
     }
 }

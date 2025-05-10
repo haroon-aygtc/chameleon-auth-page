@@ -10,6 +10,7 @@ use App\Http\Requests\StorePermissionRequest;
 use App\Http\Requests\UpdatePermissionRequest;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class PermissionController extends Controller
 {
@@ -65,5 +66,14 @@ class PermissionController extends Controller
     {
         $this->permissionService->delete($permission);
         return response()->json(['message' => 'Permission deleted successfully']);
+    }
+    
+    /**
+     * Get permissions by category.
+     */
+    public function getByCategory($category): AnonymousResourceCollection
+    {
+        $permissions = Permission::where('category', $category)->get();
+        return PermissionResource::collection($permissions);
     }
 }
