@@ -1,28 +1,32 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, Settings, Bell, Code, BarChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 import ChatLogo from '@/components/ChatLogo';
 import FeatureCard from '@/components/FeatureCard';
+import ToggleFeature from '@/components/ToggleFeature';
 import { cn } from '@/lib/utils';
 
 const AdminDashboard = () => {
+  // Feature toggle state
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  
   // Mock data for dashboard metrics
   const dashboardMetrics = [
-    { title: "Total Conversations", value: "Loading...", description: "Fetching data..." },
-    { title: "Active Users", value: "Loading...", description: "Fetching data..." },
-    { title: "Response Rate", value: "Loading...", description: "Fetching data..." },
-    { title: "Avg. Response Time", value: "Loading...", description: "Fetching data..." },
+    { title: "Total Conversations", value: analyticsEnabled ? "14,328" : "Loading...", description: analyticsEnabled ? "+28% from last month" : "Fetching data..." },
+    { title: "Active Users", value: analyticsEnabled ? "2,345" : "Loading...", description: analyticsEnabled ? "+12% from last month" : "Fetching data..." },
+    { title: "Response Rate", value: analyticsEnabled ? "94.2%" : "Loading...", description: analyticsEnabled ? "+5.4% from last month" : "Fetching data..." },
+    { title: "Avg. Response Time", value: analyticsEnabled ? "1.2s" : "Loading...", description: analyticsEnabled ? "-0.3s from last month" : "Fetching data..." },
   ];
 
   // Mock data for system status
   const systemStatus = [
-    { name: "API Status", status: "Checking..." },
-    { name: "Gemini API", status: "Checking..." },
-    { name: "Hugging Face API", status: "Checking..." },
-    { name: "Database", status: "Checking..." },
+    { name: "API Status", status: analyticsEnabled ? "Operational" : "Checking..." },
+    { name: "Gemini API", status: analyticsEnabled ? "Operational" : "Checking..." },
+    { name: "Hugging Face API", status: analyticsEnabled ? "Degraded" : "Checking..." },
+    { name: "Database", status: analyticsEnabled ? "Operational" : "Checking..." },
   ];
 
   // Quick actions
@@ -46,6 +50,10 @@ const AdminDashboard = () => {
     { label: "Users", active: false },
     { label: "AI Configuration", active: false },
   ];
+
+  const handleAnalyticsToggle = (checked: boolean) => {
+    setAnalyticsEnabled(checked);
+  };
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -217,6 +225,15 @@ const AdminDashboard = () => {
           <h1 className="text-xl font-semibold">Admin Dashboard</h1>
           
           <div className="flex items-center space-x-4">
+            {/* Feature Toggle */}
+            <div className="flex items-center">
+              <ToggleFeature 
+                label="Analytics" 
+                defaultChecked={analyticsEnabled}
+                onChange={handleAnalyticsToggle}
+              />
+            </div>
+            
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -232,6 +249,8 @@ const AdminDashboard = () => {
             </Button>
             
             <Settings className="h-5 w-5" />
+            
+            <ThemeToggle />
             
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-chatgold/20 rounded-full flex items-center justify-center">
@@ -260,15 +279,19 @@ const AdminDashboard = () => {
           {/* Dashboard Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {dashboardMetrics.map((metric, index) => (
-              <Card key={index}>
+              <Card key={index} className="transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {metric.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{metric.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{metric.description}</p>
+                  <div className={cn("text-2xl font-bold", analyticsEnabled && "animate-fade-in")}>
+                    {metric.value}
+                  </div>
+                  <p className={cn("text-xs text-muted-foreground mt-1", analyticsEnabled && "animate-fade-in")}>
+                    {metric.description}
+                  </p>
                 </CardContent>
               </Card>
             ))}
