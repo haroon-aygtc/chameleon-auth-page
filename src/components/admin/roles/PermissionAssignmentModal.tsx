@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
 import {
@@ -16,16 +15,13 @@ import {
   TabsTrigger,
   TabsContent
 } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Search, CheckSquare, Square, Save } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from '@tanstack/react-query';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePermissionGrouping } from '@/hooks/usePermissionGrouping';
 import AllModulesTabContent from './AllModulesTabContent';
 import ModuleTabContent from './ModuleTabContent';
+import PermissionSearchHeader from './PermissionSearchHeader';
+import PermissionModalFooter from './PermissionModalFooter';
 
 interface PermissionAssignmentModalProps {
   isOpen: boolean;
@@ -153,33 +149,13 @@ const PermissionAssignmentModal = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex items-center justify-between py-2">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search permissions..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={toggleAllPermissions}
-              className="flex items-center space-x-2"
-            >
-              {selectedPermissions.length === totalPermissionsCount ? (
-                <Square className="h-4 w-4 mr-1" />
-              ) : (
-                <CheckSquare className="h-4 w-4 mr-1" />
-              )}
-              <span>{selectedPermissions.length === totalPermissionsCount ? 'Deselect All' : 'Select All'}</span>
-            </Button>
-          </div>
-        </div>
+        <PermissionSearchHeader 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedPermissionsCount={selectedPermissions.length}
+          totalPermissionsCount={totalPermissionsCount}
+          onToggleAll={toggleAllPermissions}
+        />
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-2 flex overflow-x-auto pb-px">
@@ -208,35 +184,26 @@ const PermissionAssignmentModal = ({
           {/* Individual module tab content */}
           {modules.map(module => (
             <TabsContent key={module} value={module} className="mt-0">
-              <ScrollArea className="h-[50vh] pr-4">
-                <ModuleTabContent
-                  moduleName={module}
-                  moduleData={filteredPermissions[module]}
-                  selectedPermissions={selectedPermissions}
-                  onPermissionToggle={handlePermissionToggle}
-                  onCategoryToggle={toggleCategory}
-                  onModuleToggle={toggleAllModulePermissions}
-                  searchQuery={searchQuery}
-                />
-              </ScrollArea>
+              <ModuleTabContent
+                moduleName={module}
+                moduleData={filteredPermissions[module]}
+                selectedPermissions={selectedPermissions}
+                onPermissionToggle={handlePermissionToggle}
+                onCategoryToggle={toggleCategory}
+                onModuleToggle={toggleAllModulePermissions}
+                searchQuery={searchQuery}
+              />
             </TabsContent>
           ))}
         </Tabs>
         
-        <DialogFooter className="gap-2 sm:gap-0">
-          <div className="flex items-center space-x-2 mr-auto">
-            <Badge variant="secondary" className="px-2 py-1 text-xs">
-              {selectedPermissions.length} of {totalPermissionsCount} selected
-            </Badge>
-          </div>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isLoading} className="flex items-center">
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
-          </Button>
-        </DialogFooter>
+        <PermissionModalFooter
+          selectedCount={selectedPermissions.length}
+          totalCount={totalPermissionsCount}
+          isLoading={isLoading}
+          onClose={onClose}
+          onSave={handleSave}
+        />
       </DialogContent>
     </Dialog>
   );
