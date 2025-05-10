@@ -47,24 +47,30 @@ class PermissionsSeeder extends Seeder
         $createdPermissions = [];
 
         foreach ($allPermissions as $permission) {
-            $createdPermissions[] = Permission::create($permission);
+            $createdPermissions[] = Permission::firstOrCreate(
+                ['name' => $permission['name']],
+                [
+                    'description' => $permission['description'],
+                    'category' => $permission['category']
+                ]
+            );
         }
 
-        // Create roles
-        $adminRole = Role::create([
-            'name' => 'Admin',
-            'description' => 'Administrator with all permissions',
-        ]);
+        // Get or create roles
+        $adminRole = Role::firstOrCreate(
+            ['name' => 'Admin'],
+            ['description' => 'Administrator with all permissions']
+        );
 
-        $managerRole = Role::create([
-            'name' => 'Manager',
-            'description' => 'Manager with limited permissions',
-        ]);
+        $managerRole = Role::firstOrCreate(
+            ['name' => 'Manager'],
+            ['description' => 'Manager with limited permissions']
+        );
 
-        $userRole = Role::create([
-            'name' => 'User',
-            'description' => 'Regular user with basic permissions',
-        ]);
+        $userRole = Role::firstOrCreate(
+            ['name' => 'User'],
+            ['description' => 'Regular user with basic permissions']
+        );
 
         // Assign permissions to roles
         $adminRole->permissions()->sync(collect($createdPermissions)->pluck('id'));
@@ -80,31 +86,40 @@ class PermissionsSeeder extends Seeder
             ])->pluck('id')
         );
 
-        // Create admin user
-        $admin = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        // Get or create admin user
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('password'),
+                'status' => 'active',
+            ]
+        );
 
-        $admin->roles()->attach($adminRole->id);
+        $admin->roles()->syncWithoutDetaching([$adminRole->id]);
 
-        // Create manager user
-        $manager = User::create([
-            'name' => 'Manager User',
-            'email' => 'manager@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        // Get or create manager user
+        $manager = User::firstOrCreate(
+            ['email' => 'manager@example.com'],
+            [
+                'name' => 'Manager User',
+                'password' => Hash::make('password'),
+                'status' => 'active',
+            ]
+        );
 
-        $manager->roles()->attach($managerRole->id);
+        $manager->roles()->syncWithoutDetaching([$managerRole->id]);
 
-        // Create regular user
-        $user = User::create([
-            'name' => 'Regular User',
-            'email' => 'user@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        // Get or create regular user
+        $user = User::firstOrCreate(
+            ['email' => 'user@example.com'],
+            [
+                'name' => 'Regular User',
+                'password' => Hash::make('password'),
+                'status' => 'active',
+            ]
+        );
 
-        $user->roles()->attach($userRole->id);
+        $user->roles()->syncWithoutDetaching([$userRole->id]);
     }
 }

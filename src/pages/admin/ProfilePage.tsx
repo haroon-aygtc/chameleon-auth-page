@@ -3,9 +3,11 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminNavTabs from '@/components/admin/AdminNavTabs';
 import ProfileContent from '@/components/admin/profile/ProfileContent';
+import { useSidebar } from '@/hooks/use-sidebar';
 
 const ProfilePage = () => {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   // Navigation tabs
   const tabs = [
@@ -33,7 +35,7 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar Navigation */}
-      <AdminSidebar />
+      <AdminSidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">

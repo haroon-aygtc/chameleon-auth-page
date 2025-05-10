@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminProfilePage from "./pages/admin/ProfilePage";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
+import AIModelsPage from "./pages/admin/AIModelsPage";
 
 // Admin user management routes
 import UsersPage from "./pages/admin/UsersPage";
@@ -37,10 +38,14 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
+              
+              {/* AI Models pages - public, no authentication required */}
+              <Route path="/admin/ai-models" element={<AIModelsPage />} />
+              <Route path="/admin" element={<Navigate to="/admin/ai-models" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/admin/ai-models" replace />} />
 
               {/* Protected routes - require authentication */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/users" element={<UsersPage />} />
                 <Route path="/admin/roles" element={<RolesPage />} />
                 <Route path="/admin/permissions" element={<PermissionsPage />} />

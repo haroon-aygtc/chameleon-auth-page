@@ -1,21 +1,21 @@
+
 import React from 'react';
 import { useSidebar } from '@/hooks/use-sidebar';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import { Outlet } from 'react-router-dom';
+import AIModelPanel from '@/pages/AIModelPanel';
 
-// This component wraps the existing RolesPage (which we can't directly modify)
-// and provides the required props to AdminSidebar
-const RolesPageWrapper: React.FC = () => {
+// This component wraps the AIModelPanel and provides the required props to AdminSidebar
+const AIModelsPageWrapper: React.FC = () => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   
   return (
     <div className="min-h-screen flex bg-background">
       <AdminSidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
-      <div className="flex-1">
-        <Outlet />
+      <div className="flex-1 p-4 overflow-auto">
+        <AIModelPanel />
       </div>
     </div>
   );
 };
 
-export default RolesPageWrapper;
+export default AIModelsPageWrapper;

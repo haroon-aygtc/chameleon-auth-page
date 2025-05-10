@@ -1,57 +1,66 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Users, Settings, Key, Shield, List, LogOut, User as UserIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ChatLogo from '@/components/ChatLogo';
-import { ChevronLeft, ChevronRight, Users, Settings, Key, Shield, List, LogOut, User } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+// Props for AdminSidebar
+interface AdminSidebarProps {
+  isCollapsed?: boolean;
+  onToggle?: () => void;
+}
+
+// SidebarItem component
 interface SidebarItemProps {
   to: string;
   icon: React.ReactNode;
   label: string;
-  isCollapsed: boolean;
   isActive?: boolean;
-  children?: React.ReactNode;
+  isCollapsed: boolean;
 }
 
-const SidebarItem = ({ to, icon, label, isCollapsed, isActive }: SidebarItemProps) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({
+  to,
+  icon,
+  label,
+  isActive = false,
+  isCollapsed
+}) => {
   return (
-    <li>
+    <li className="mb-1">
       <Link
         to={to}
         className={cn(
-          "flex items-center p-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-          !isCollapsed && "justify-between"
+          "flex items-center p-2 rounded-md transition-colors",
+          isActive
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
         )}
       >
-        <div className="flex items-center">
-          <span className={cn("inline-block mr-3", isCollapsed ? "w-5 h-5" : "w-5 h-5")}>{icon}</span>
-          {!isCollapsed && <span>{label}</span>}
-        </div>
+        <span className={cn("inline-block mr-3", isCollapsed ? "w-5 h-5" : "w-5 h-5")}>{icon}</span>
+        {!isCollapsed && <span>{label}</span>}
       </Link>
     </li>
   );
 };
 
-
-
-const AdminSidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const AdminSidebar: React.FC<AdminSidebarProps> = ({
+  isCollapsed: propIsCollapsed,
+  onToggle: propOnToggle
+}) => {
+  const [stateIsCollapsed, setStateIsCollapsed] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Use props if provided, otherwise use state
+  const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : stateIsCollapsed;
+
   // Check if user has admin role
   const isAdmin = user?.roles?.includes('Admin');
-
-  // Debug user roles
-  console.log('User:', user);
-  console.log('User roles:', user?.roles);
-  console.log('Is Admin:', isAdmin);
 
   // Get user initials for avatar
   const getInitials = (name: string) => {
@@ -65,25 +74,38 @@ const AdminSidebar = () => {
 
   const userInitials = user?.name ? getInitials(user.name) : 'U';
 
+  const toggleSidebar = () => {
+    if (propOnToggle) {
+      propOnToggle();
+    } else {
+      setStateIsCollapsed(!stateIsCollapsed);
+    }
+  };
+
   return (
-    <motion.aside
+    <div
       className={cn(
-        "bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border transition-all",
+        "hidden md:flex h-screen flex-col p-3 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300",
         isCollapsed ? "w-16" : "w-60"
       )}
-      animate={{ width: isCollapsed ? "4rem" : "15rem" }}
-      transition={{ duration: 0.3 }}
     >
-      {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border flex justify-between items-center">
-        {!isCollapsed && <ChatLogo className="text-lg" />}
+      <div className="flex items-center justify-between mb-4">
+        {!isCollapsed ? (
+          <Link to="/admin" className="flex items-center">
+            <ChatLogo />
+          </Link>
+        ) : (
+          <Link to="/admin" className="flex items-center justify-center w-full">
+            <ChatLogo variant="compact" />
+          </Link>
+        )}
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleSidebar}
+          className="p-0"
         >
-          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
 
@@ -96,13 +118,9 @@ const AdminSidebar = () => {
         onClick={() => navigate('/admin/profile')}
       >
         <Avatar className="h-10 w-10 bg-chatgold/20 flex-shrink-0">
-          {user?.avatar ? (
-            <AvatarImage src={user.avatar} alt={user?.name || 'User'} />
-          ) : (
-            <AvatarFallback className="text-chatgold font-medium text-sm">
-              {userInitials}
-            </AvatarFallback>
-          )}
+          <AvatarFallback className="text-chatgold font-medium text-sm">
+            {userInitials}
+          </AvatarFallback>
         </Avatar>
         {!isCollapsed && user && (
           <div className="flex flex-col">
@@ -131,7 +149,7 @@ const AdminSidebar = () => {
 
           <SidebarItem
             to="/admin/profile"
-            icon={<User />}
+            icon={<UserIcon />}
             label="My Profile"
             isActive={window.location.pathname === '/admin/profile'}
             isCollapsed={isCollapsed}
@@ -144,6 +162,7 @@ const AdminSidebar = () => {
                 to="/admin/users"
                 icon={<Users />}
                 label="User Management"
+                isActive={window.location.pathname === '/admin/users'}
                 isCollapsed={isCollapsed}
               />
 
@@ -151,6 +170,7 @@ const AdminSidebar = () => {
                 to="/admin/roles"
                 icon={<Shield />}
                 label="Role Management"
+                isActive={window.location.pathname === '/admin/roles'}
                 isCollapsed={isCollapsed}
               />
 
@@ -158,17 +178,17 @@ const AdminSidebar = () => {
                 to="/admin/permissions"
                 icon={<Key />}
                 label="Permission Management"
+                isActive={window.location.pathname === '/admin/permissions'}
                 isCollapsed={isCollapsed}
               />
             </>
           )}
 
-
-
           <SidebarItem
             to="/admin/widget-config"
             icon={<Settings />}
             label="Widget Config"
+            isActive={window.location.pathname === '/admin/widget-config'}
             isCollapsed={isCollapsed}
           />
 
@@ -177,28 +197,26 @@ const AdminSidebar = () => {
               to="/admin/context-rules"
               icon={<List />}
               label="Context Rules"
+              isActive={window.location.pathname === '/admin/context-rules'}
               isCollapsed={isCollapsed}
             />
           )}
+
+          {/* Logout Button */}
+          <li className="mt-auto pt-4">
+            <button
+              onClick={() => logout()}
+              className={cn(
+                "flex items-center p-2 rounded-md w-full text-left transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+              )}
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              {!isCollapsed && <span>Logout</span>}
+            </button>
+          </li>
         </ul>
       </nav>
-
-      {/* Logout */}
-      <div className="p-2 mt-auto border-t border-sidebar-border">
-        <button
-          onClick={logout}
-          className={cn(
-            "w-full flex items-center p-2 text-sm rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            isCollapsed && "justify-center"
-          )}
-        >
-          <span className={cn("inline-block", isCollapsed ? "w-5 h-5" : "w-5 h-5 mr-3")}>
-            <LogOut size={18} />
-          </span>
-          {!isCollapsed && "Logout"}
-        </button>
-      </div>
-    </motion.aside>
+    </div>
   );
 };
 
