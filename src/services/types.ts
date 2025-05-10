@@ -6,13 +6,28 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  status?: 'active' | 'inactive' | 'suspended' | 'pending';
   roles: string[] | any[]; // Allow for role objects
   avatar?: string;
-  isActive?: boolean;
-  lastLogin?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  phone?: string;
+  job_title?: string;
+  company?: string;
+  theme_preference?: 'light' | 'dark' | 'system';
+  notification_preferences?: {
+    email_notifications?: boolean;
+    push_notifications?: boolean;
+    marketing_emails?: boolean;
+    security_alerts?: boolean;
+  };
+  last_login_at?: string;
+  email_verified_at?: string;
   // Password fields (only used for creation/updates)
   password?: string;
   password_confirmation?: string;
+  current_password?: string;
   // Support both camelCase and snake_case formats
   createdAt?: string;
   updatedAt?: string;

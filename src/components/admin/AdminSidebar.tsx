@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import ChatLogo from '@/components/ChatLogo';
-import { ChevronLeft, ChevronRight, Users, Settings, Key, Shield, List, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Settings, Key, Shield, List, LogOut, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarItemProps {
   to: string;
@@ -42,6 +43,7 @@ const SidebarItem = ({ to, icon, label, isCollapsed, isActive }: SidebarItemProp
 const AdminSidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Check if user has admin role
   const isAdmin = user?.roles?.includes('Admin');
@@ -86,13 +88,22 @@ const AdminSidebar = () => {
       </div>
 
       {/* User Profile */}
-      <div className={cn(
-        "p-4 flex items-center border-b border-sidebar-border",
-        isCollapsed ? "justify-center" : "space-x-3"
-      )}>
-        <div className="h-10 w-10 bg-chatgold/20 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-chatgold font-medium text-sm">{userInitials}</span>
-        </div>
+      <div
+        className={cn(
+          "p-4 flex items-center border-b border-sidebar-border cursor-pointer hover:bg-sidebar-accent/30 transition-colors",
+          isCollapsed ? "justify-center" : "space-x-3"
+        )}
+        onClick={() => navigate('/admin/profile')}
+      >
+        <Avatar className="h-10 w-10 bg-chatgold/20 flex-shrink-0">
+          {user?.avatar ? (
+            <AvatarImage src={user.avatar} alt={user?.name || 'User'} />
+          ) : (
+            <AvatarFallback className="text-chatgold font-medium text-sm">
+              {userInitials}
+            </AvatarFallback>
+          )}
+        </Avatar>
         {!isCollapsed && user && (
           <div className="flex flex-col">
             <div className="flex items-center">
@@ -102,6 +113,7 @@ const AdminSidebar = () => {
               )}
             </div>
             <span className="text-xs text-sidebar-foreground/70">{user.email}</span>
+            <span className="text-xs text-primary mt-1 hover:underline">View Profile</span>
           </div>
         )}
       </div>
@@ -113,7 +125,15 @@ const AdminSidebar = () => {
             to="/admin"
             icon={<Settings />}
             label="Dashboard"
-            isActive={true}
+            isActive={window.location.pathname === '/admin'}
+            isCollapsed={isCollapsed}
+          />
+
+          <SidebarItem
+            to="/admin/profile"
+            icon={<User />}
+            label="My Profile"
+            isActive={window.location.pathname === '/admin/profile'}
             isCollapsed={isCollapsed}
           />
 
@@ -143,7 +163,7 @@ const AdminSidebar = () => {
             </>
           )}
 
-          
+
 
           <SidebarItem
             to="/admin/widget-config"

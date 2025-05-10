@@ -89,10 +89,21 @@ const AdminHeader = ({ analyticsEnabled, onAnalyticsToggle }: AdminHeaderProps) 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center space-x-2 cursor-pointer hover:opacity-80">
-              <Avatar className="h-8 w-8 bg-chatgold/20">
-                <AvatarFallback className="text-chatgold font-medium text-sm">
-                  {userInitials}
-                </AvatarFallback>
+              <Avatar
+                className="h-8 w-8 bg-chatgold/20 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate('/admin/profile');
+                }}
+              >
+                {user?.avatar ? (
+                  <AvatarImage src={user.avatar} alt={user?.name || 'User'} />
+                ) : (
+                  <AvatarFallback className="text-chatgold font-medium text-sm">
+                    {userInitials}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="flex items-center">
                 <span className="text-sm font-medium">{user?.name || 'User'}</span>
@@ -104,7 +115,7 @@ const AdminHeader = ({ analyticsEnabled, onAnalyticsToggle }: AdminHeaderProps) 
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => navigate('/profile')}>
+              <DropdownMenuItem onClick={() => navigate('/admin/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>

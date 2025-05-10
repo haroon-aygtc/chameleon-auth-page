@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminProfilePage from "./pages/admin/ProfilePage";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -43,9 +44,11 @@ const App = () => (
                 <Route path="/admin/users" element={<UsersPage />} />
                 <Route path="/admin/roles" element={<RolesPage />} />
                 <Route path="/admin/permissions" element={<PermissionsPage />} />
+                <Route path="/admin/profile" element={<AdminProfilePage />} />
 
-                {/* Redirect /dashboard to /admin for consistency */}
+                {/* Redirects for consistency */}
                 <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+                <Route path="/profile" element={<Navigate to="/admin/profile" replace />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />
