@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 import AIModelsPage from "./pages/admin/AIModelsPage";
+import AIModelDetailPage from "./pages/admin/AIModelDetailPage";
 
 // Admin user management routes
 import UsersPage from "./pages/admin/UsersPage";
@@ -38,8 +39,10 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
-              {/* AI Models page - public, no authentication required */}
+              {/* AI Models pages - public, no authentication required */}
               <Route path="/admin/ai-models" element={<AIModelsPage />} />
+              <Route path="/admin/ai-models/new" element={<AIModelDetailPage />} />
+              <Route path="/admin/ai-models/edit/:modelId" element={<AIModelDetailPage />} />
               <Route path="/admin" element={<Navigate to="/admin/ai-models" replace />} />
               <Route path="/dashboard" element={<Navigate to="/admin/ai-models" replace />} />
 

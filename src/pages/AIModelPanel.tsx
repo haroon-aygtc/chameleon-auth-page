@@ -1,23 +1,21 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  Plus, Edit, Check, X, Star, ArrowLeft, ArrowRight, ChevronDown 
+  Plus, Edit, Check, X, Star, ArrowLeft, ArrowRight, ChevronDown, 
+  Table, LayoutGrid, TestTube
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+  CardContent
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import ModelForm from '@/components/ai/ModelForm';
 import ModelCard from '@/components/ai/ModelCard';
+import ModelTable from '@/components/ai/ModelTable';
 import TestingArea from '@/components/ai/TestingArea';
 import { AIModel, ResponseStyle } from '@/types/ai-types';
 import { mockAIModels } from '@/data/mockData';
@@ -25,20 +23,8 @@ import { mockAIModels } from '@/data/mockData';
 const AIModelPanel: React.FC = () => {
   const [models, setModels] = useState<AIModel[]>(mockAIModels);
   const [activeModel, setActiveModel] = useState<AIModel | null>(models.find(m => m.isDefault) || null);
-  const [showModelForm, setShowModelForm] = useState(false);
-  const [editingModel, setEditingModel] = useState<AIModel | null>(null);
-  
-  const handleAddModel = (model: AIModel) => {
-    setModels([...models, { ...model, id: Date.now().toString() }]);
-    setShowModelForm(false);
-    toast.success(`${model.name} has been added successfully`);
-  };
-  
-  const handleEditModel = (model: AIModel) => {
-    setModels(models.map(m => m.id === model.id ? model : m));
-    setEditingModel(null);
-    toast.success(`${model.name} has been updated successfully`);
-  };
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const navigate = useNavigate();
   
   const handleToggleActive = (modelId: string) => {
     setModels(models.map(model => 
@@ -71,10 +57,7 @@ const AIModelPanel: React.FC = () => {
           <p className="text-muted-foreground mt-1">Configure and test your AI models in one place</p>
         </div>
         <Button 
-          onClick={() => {
-            setEditingModel(null);
-            setShowModelForm(true);
-          }}
+          onClick={() => navigate('/admin/ai-models/new')}
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
@@ -90,18 +73,49 @@ const AIModelPanel: React.FC = () => {
           </TabsList>
           
           <TabsContent value="models" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {models.map((model) => (
-                <ModelCard 
-                  key={model.id} 
-                  model={model} 
-                  onEdit={() => setEditingModel(model)}
-                  onToggleActive={() => handleToggleActive(model.id)}
-                  onSetDefault={() => handleSetDefault(model.id)}
-                  onSelect={() => setActiveModel(model)}
-                />
-              ))}
+            <div className="flex justify-end mb-4">
+              <div className="inline-flex rounded-md shadow-sm">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  className="rounded-r-none"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid className="h-4 w-4 mr-1" />
+                  Grid View
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'outline'}
+                  className="rounded-l-none"
+                  onClick={() => setViewMode('table')}
+                >
+                  <Table className="h-4 w-4 mr-1" />
+                  Table View
+                </Button>
+              </div>
             </div>
+
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {models.map((model) => (
+                  <ModelCard 
+                    key={model.id} 
+                    model={model} 
+                    onEdit={() => navigate(`/admin/ai-models/edit/${model.id}`)}
+                    onToggleActive={() => handleToggleActive(model.id)}
+                    onSetDefault={() => handleSetDefault(model.id)}
+                    onSelect={() => setActiveModel(model)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <ModelTable 
+                models={models}
+                onEdit={(model) => navigate(`/admin/ai-models/edit/${model.id}`)}
+                onToggleActive={handleToggleActive}
+                onSetDefault={handleSetDefault}
+                onSelect={setActiveModel}
+              />
+            )}
           </TabsContent>
           
           <TabsContent value="testing">
@@ -113,18 +127,6 @@ const AIModelPanel: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
-      
-      {(showModelForm || editingModel) && (
-        <ModelForm 
-          open={showModelForm || !!editingModel} 
-          onClose={() => {
-            setShowModelForm(false);
-            setEditingModel(null);
-          }}
-          onSubmit={editingModel ? handleEditModel : handleAddModel}
-          model={editingModel}
-        />
-      )}
     </div>
   );
 };
